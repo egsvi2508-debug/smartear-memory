@@ -1,8 +1,8 @@
-// visual-memory.js — Visual Memory: photograph the staff, rebuild it.
+// visual-memory.js, Visual Memory: photograph the staff, rebuild it.
 //
 // A snapshot of notes flashes on a grand staff divided into columns (time
 // slots), vanishes, and you rebuild it by tapping the notes back onto the
-// SAME board — the answer surface is literally the picture you studied
+// SAME board, the answer surface is literally the picture you studied
 // (js/staff-board.js), so what's trained is holding a notated image in
 // visuospatial memory, not translating it through a menu. The column grid
 // makes it a 2-D memory task (which slot × which line/space), the staff
@@ -10,10 +10,10 @@
 // 10-note snapshot is a readable little passage, not a 10-note tower.
 //
 // Content is MOSTLY RANDOM (~65%): random positions, random column fill,
-// random accidentals — nothing to lean on but memory. The rest are real
+// random accidentals, nothing to lean on but memory. The rest are real
 // patterns (lines, arches, zigzags, parallel 3rds/6ths, in an actual key)
 // because spotting structure ("chunking") is the other half of a strong
-// musical memory — and some of those patterns carry one deliberately broken
+// musical memory, and some of those patterns carry one deliberately broken
 // note, so leaning on the pattern alone still fails. The reveal says which
 // kind of round it was and why the miss happened.
 //
@@ -21,7 +21,7 @@
 // board widens (2 → 6 columns), the register opens from the treble staff
 // to both staves, and accidentals phase in from level 3.
 //
-// Deliberately PURE VISUAL during the flash — nothing plays. The snapshot
+// Deliberately PURE VISUAL during the flash, nothing plays. The snapshot
 // can be heard afterwards on the reveal ("Hear it") as reinforcement only.
 
 import { keySpelling, keyLabel, noteLabel } from "./theory.js";
@@ -33,8 +33,8 @@ import { openMemoryGame, el, randInt, pick } from "./memory-kit.js";
 export const meta = {
   id: "visual-memory",
   name: "Visual Memory",
-  blurb: "A snapshot of notes flashes on the staff and vanishes — rebuild it, every note back in its place.",
-  // Not scored through js/scoring.js — progress lives in its own doc (see
+  blurb: "A snapshot of notes flashes on the staff and vanishes, rebuild it, every note back in its place.",
+  // Not scored through js/scoring.js, progress lives in its own doc (see
   // js/memory-kit.js), so the account screen's lifetime totals skip it.
   selfGuided: true,
 };
@@ -117,8 +117,8 @@ const KEY_POOLS = [
 const CONTOURS = {
   rise: { name: "a rising line", off: (i) => i },
   fall: { name: "a falling line", off: (i) => -i },
-  arch: { name: "an arch — up, then back down", off: (i, n) => Math.min(i, n - 1 - i) },
-  valley: { name: "a valley — down, then back up", off: (i, n) => -Math.min(i, n - 1 - i) },
+  arch: { name: "an arch, up, then back down", off: (i, n) => Math.min(i, n - 1 - i) },
+  valley: { name: "a valley, down, then back up", off: (i, n) => -Math.min(i, n - 1 - i) },
   zigzag: { name: "a climbing zigzag", off: (i) => (i % 2 ? Math.floor(i / 2) + 2 : i / 2) },
 };
 const IV_NAME = { 2: "3rds", 3: "4ths", 4: "5ths", 5: "6ths" };
@@ -140,7 +140,7 @@ function genPattern(rng, spec, level) {
     const iv = pick(rng, [2, 2, 5, 3, 4]);
     const base = Array.from({ length: cols }, (_, i) => contour.off(i, cols) * step);
     // Stack order: parallel interval above the line, then (3 layers) the
-    // same interval again on top — a line in parallel 3rds becomes stacked
+    // same interval again on top, a line in parallel 3rds becomes stacked
     // triads.
     const stacks = [0, iv, iv * 2].slice(0, layers);
     const lowOff = Math.min(...base);
@@ -217,32 +217,32 @@ function gradeAttempt(target, attempt) {
 }
 
 const TIPS = [
-  "Read it column by column, left to right — like a short passage, not a cloud of dots.",
+  "Read it column by column, left to right, like a short passage, not a cloud of dots.",
   "Anchor to landmarks: middle C, the top line F, the bottom line G. Measure from them.",
   "Name the notes silently while they're up. Words stick better than dots.",
   "Trace the outline: which column is highest, which is lowest? The shape holds the rest.",
-  "Accidentals first — note which notes carry a sign, then learn the positions.",
+  "Accidentals first, note which notes carry a sign, then learn the positions.",
   "Split the grand staff: remember the treble part and the bass part as two small pictures.",
 ];
 
 function buildTip({ target, info, g, success, roundIndex }) {
   const n = target.length;
   if (!success) {
-    if (g.placed !== n) return `There were ${n} notes — you placed ${g.placed}. Count them column by column while they're up.`;
+    if (g.placed !== n) return `There were ${n} notes, you placed ${g.placed}. Count them column by column while they're up.`;
     if (g.wrongAcc > 0 && g.wrongPos === 0) {
-      if (info.kind === "pattern") return `Every position right — the accidentals slipped. This one was in ${info.keyName}.`;
+      if (info.kind === "pattern") return `Every position right, the accidentals slipped. This one was in ${info.keyName}.`;
       const signed = target.filter((t) => t.alter !== 0).map(labelOct);
-      return signed.length ? `Right spots, wrong signs. The accidentals were: ${signed.join(", ")}.` : "Right spots — but there were no accidentals this time.";
+      return signed.length ? `Right spots, wrong signs. The accidentals were: ${signed.join(", ")}.` : "Right spots, but there were no accidentals this time.";
     }
-    if (info.kind === "pattern" && info.broken !== null) return `Almost a pattern: ${info.desc} — but column ${info.broken + 1} broke it. Patterns help; check for the exception.`;
+    if (info.kind === "pattern" && info.broken !== null) return `Almost a pattern: ${info.desc}, but column ${info.broken + 1} broke it. Patterns help; check for the exception.`;
     if (info.kind === "pattern") return `This one had a pattern: ${info.desc}. Spotting the shape turns ${n} notes into one idea.`;
     if (g.colSlip > 0) return `${g.colSlip === 1 ? "A note" : `${g.colSlip} notes`} landed in the wrong column. Read the board left to right, one column at a time.`;
     if (g.stepOff > 0) return `${g.stepOff === 1 ? "A note was" : `${g.stepOff} notes were`} one step off. Line or space? Check against middle C and the outer lines.`;
-    return "Pure random this time — nothing to lean on. " + TIPS[roundIndex % TIPS.length];
+    return "Pure random this time, nothing to lean on. " + TIPS[roundIndex % TIPS.length];
   }
-  if (info.kind === "pattern" && info.broken !== null) return `Almost a pattern: ${info.desc}, with one note out of line — and you caught it.`;
+  if (info.kind === "pattern" && info.broken !== null) return `Almost a pattern: ${info.desc}, with one note out of line, and you caught it.`;
   if (info.kind === "pattern") return `Pattern round: ${info.desc}. Seeing the shape turns ${n} notes into one idea.`;
-  return "Random round — no pattern, all memory. " + TIPS[roundIndex % TIPS.length];
+  return "Random round, no pattern, all memory. " + TIPS[roundIndex % TIPS.length];
 }
 
 // ---------------------------------------------------------------------------
@@ -266,7 +266,7 @@ function createRunner(ctx) {
   // Flash controls
   const flashRow = el("div", "mk-row center");
   flashRow.dataset.show = "flash";
-  const gotItBtn = el("button", "mk-btn ghost", "Got it — hide");
+  const gotItBtn = el("button", "mk-btn ghost", "Got it, hide");
   gotItBtn.appendChild(el("kbd", "mk-kbd-hint", "Space"));
   flashRow.appendChild(gotItBtn);
 
@@ -306,7 +306,7 @@ function createRunner(ctx) {
   let info = null;
   let attempt = [];
   let acc = 0;
-  let cursor = null; // { col, d } — keyboard cursor
+  let cursor = null; // { col, d }, keyboard cursor
   let flashStart = 0;
   let lastPlaced = null;
   let roundIndex = 0;
@@ -344,7 +344,7 @@ function createRunner(ctx) {
     clearBtn.disabled = attempt.length === 0;
     checkBtn.disabled = attempt.length === 0;
     checkBtn.classList.toggle("ready", attempt.length === target.length);
-    ctx.status(attempt.length === target.length ? "All placed — check when ready" : `Rebuild it · ${attempt.length} of ${target.length}`);
+    ctx.status(attempt.length === target.length ? "All placed, check when ready" : `Rebuild it · ${attempt.length} of ${target.length}`);
   }
 
   function placeAt(col, d) {
@@ -441,7 +441,7 @@ function createRunner(ctx) {
       title: g.perfect ? undefined : g.good ? `${g.good} of ${n} right` : "Missed it",
       tip: buildTip({ target, info, g, success: g.perfect, roundIndex }),
       legend: g.perfect ? null : [["good", "Correct"], ["bad", "Wrong"], ["missed", "Missed"]],
-      actions: [{ label: "🔊 Hear it", key: "h", onClick: hear }],
+      actions: [{ label: "Hear it", key: "h", onClick: hear }],
     });
   }
 
@@ -514,12 +514,12 @@ const GAME = {
   unitLabel: "Notes recalled",
   accuracyLabel: "Note accuracy",
   modes: {
-    classic: { blurb: "3 lives. Every perfect rebuild adds a note — and the board grows." },
+    classic: { blurb: "3 lives. Every perfect rebuild adds a note, and the board grows." },
     daily: { blurb: "Same snapshots for everyone today." },
-    training: { blurb: "No lives — the level follows you." },
+    training: { blurb: "No lives, the level follows you." },
   },
   howTo: [
-    ["Look", "Notes appear for a few seconds — mostly random, sometimes a pattern. Nothing plays: eyes only."],
+    ["Look", "Notes appear for a few seconds, mostly random, sometimes a pattern. Nothing plays: eyes only."],
     ["Rebuild", "Tap the staff where each note was. Choose ♭ ♮ ♯ first; tap a note again to remove it."],
     ["Climb", "A perfect board adds one more note. Three misses and the run is over."],
   ],

@@ -1,4 +1,4 @@
-// board.ts — global leaderboards in the SmartEar Firebase project.
+// board.ts, global leaderboards in the SmartEar Firebase project.
 // Players sign in anonymously (no account, no email). Each player has one
 // entry per game (their best ranked run) and one overall entry (rating).
 // Firestore rules only let a player write their own entry, with sane
@@ -74,13 +74,23 @@ export function cleanName(s: string): string {
   return s.replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 20);
 }
 
-/** Save a player's best for a game. Keeps the higher of the old and new entry. */
-export async function submitGame(game: string, e: { name: string; level: number; score: number; mode: string }): Promise<boolean> {
+/** Which board: a game's all-time board, a game's board for one Daily, or overall. */
+export type Board = { game: string; day?: string } | null;
+
+function colPath(b: Board): string[] {
+  if (!b) return ["memoryOverall"];
+  return b.day ? ["memoryDaily", b.day, b.game] : ["memoryBoards", b.game, "scores"];
+}
+
+/** Save a player's entry on a board. Keeps the higher of the old and new entry. */
+export async function submitGame(game: string, e: { name: string; level: number; score: number; mode: string }, day?: string): Promise<boolean> {
   const c = await connect();
   const name = cleanName(e.name);
   if (!c || !name || e.level < 1) return false;
+  if (day && e.mode !== "daily") return false;
   const { fs, db, uid } = c;
-  const ref = fs.doc(db, "memoryBoards", game, "scores", uid);
+  const [c1, ...rest] = colPath({ game, day });
+  const ref = fs.doc(db, c1, ...rest, uid);
   try {
     const old = await fs.getDoc(ref);
     let level = Math.min(60, Math.floor(e.level));
@@ -117,12 +127,13 @@ export async function submitOverall(name: string, rating: number, games: number)
   }
 }
 
-export async function topGame(game: string, n = 50): Promise<Entry[] | null> {
+export async function topGame(game: string, n = 50, day?: string): Promise<Entry[] | null> {
   const c = await connect();
   if (!c) return null;
   const { fs, db } = c;
+  const [c1, ...rest] = colPath({ game, day });
   try {
-    const snap = await fs.getDocs(fs.query(fs.collection(db, "memoryBoards", game, "scores"), fs.orderBy("rank", "desc"), fs.limit(n)));
+    const snap = await fs.getDocs(fs.query(fs.collection(db, c1, ...rest), fs.orderBy("rank", "desc"), fs.limit(n)));
     return snap.docs.map((d) => {
       const x = d.data();
       return { uid: d.id, name: String(x.name), level: Number(x.level), score: Number(x.score), mode: String(x.mode) };
@@ -149,15 +160,16 @@ export async function topOverall(n = 50): Promise<OverallEntry[] | null> {
   }
 }
 
-/** Your position on a board (1 = top) and how many players it has. */
-export async function myPlace(game: string | null): Promise<{ place: number; total: number } | null> {
+/** Your position on a board (1 = top; 0 = not on it) and how many players it has. */
+export async function myPlace(board: Board): Promise<{ place: number; total: number } | null> {
   const c = await connect();
   if (!c) return null;
   const { fs, db, uid } = c;
+  const [c1, ...rest] = colPath(board);
   try {
-    const col = game ? fs.collection(db, "memoryBoards", game, "scores") : fs.collection(db, "memoryOverall");
-    const field = game ? "rank" : "rating";
-    const mine = await fs.getDoc(game ? fs.doc(db, "memoryBoards", game, "scores", uid) : fs.doc(db, "memoryOverall", uid));
+    const col = fs.collection(db, c1, ...rest);
+    const field = board ? "rank" : "rating";
+    const mine = await fs.getDoc(fs.doc(db, c1, ...rest, uid));
     const total = (await fs.getCountFromServer(col)).data().count;
     if (!mine.exists()) return { place: 0, total };
     const above = (await fs.getCountFromServer(fs.query(col, fs.where(field, ">", mine.data()[field])))).data().count;
@@ -165,5 +177,31 @@ export async function myPlace(game: string | null): Promise<{ place: number; tot
   } catch (err) {
     console.warn("[Musical Memory] place lookup failed", err);
     return null;
+  }
+}
+
+/** Delete this player's entries: every game board, the overall board, and
+ *  the Daily boards of the last `days` days. Returns false if it failed. */
+export async function removeMe(games: string[], days = 60): Promise<boolean> {
+  const c = await connect();
+  if (!c) return false;
+  const { fs, db, uid } = c;
+  try {
+    const batch = fs.writeBatch(db);
+    batch.delete(fs.doc(db, "memoryOverall", uid));
+    const d = new Date();
+    for (const g of games) {
+      batch.delete(fs.doc(db, "memoryBoards", g, "scores", uid));
+      for (let i = 0; i < days; i++) {
+        const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i);
+        const key = `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+        batch.delete(fs.doc(db, "memoryDaily", key, g, uid));
+      }
+    }
+    await batch.commit();
+    return true;
+  } catch (err) {
+    console.warn("[Musical Memory] remove failed", err);
+    return false;
   }
 }

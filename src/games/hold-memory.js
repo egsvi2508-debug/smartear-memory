@@ -1,4 +1,4 @@
-// hold-memory.js — Pitch Hold: keep one tone in mind.
+// hold-memory.js, Pitch Hold: keep one tone in mind.
 //
 // One tone plays: "keep this tone in mind (without singing it!)". Then, all through the wait, a
 // stream of other notes tries to knock it out of your head. Then find the
@@ -87,7 +87,7 @@ function name(m) {
 }
 
 const TIPS = [
-  "Keep the tone alive in your head the whole way through the wait — without humming or singing it.",
+  "Keep the tone alive in your head the whole way through the wait, without humming or singing it.",
   "Before you search, “hear” it once more in your head. Then move slowly, one step at a time.",
   "Stop the moment it matches. Going past and back again blurs the memory.",
   "Give the tone a colour: bright or dark, high or low? A label holds better than a hum.",
@@ -124,7 +124,7 @@ function createRunner(ctx) {
   row.append(down, hear, up, lock);
   const hint = el("div", "mk-hint");
   hint.dataset.show = "recall";
-  hint.innerHTML = '<span>Drag along the strip — every step sounds</span><span class="mk-keys-only"> · <kbd>←</kbd><kbd>→</kbd> step · <kbd>Space</kbd> hear · <kbd>Enter</kbd> lock</span>';
+  hint.innerHTML = '<span>Drag along the strip, every step sounds</span><span class="mk-keys-only"> · <kbd>←</kbd><kbd>→</kbd> step · <kbd>Space</kbd> hear · <kbd>Enter</kbd> lock</span>';
   ctx.controls.append(row, hint);
 
   let spec = null;

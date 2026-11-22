@@ -1,4 +1,4 @@
-// SmartEar Memory — the six memory games from SmartEar as their own app.
+// SmartEar Memory, the six memory games from SmartEar as their own app.
 // Home lists the games; #/<game-id> opens one. Progress is kept in this
 // browser (localStorage) by the games' shared shell, memory-kit.js.
 
@@ -13,11 +13,14 @@ import "./styles/legacy.css";
 import "./games/memory.css";
 import "./styles/simple.css";
 import "./styles/bench.css";
+import "./styles/plain.css";
 
 import { loadVexFlow } from "./lib/vexflow";
 import { mkHooks, todayKey } from "./games/memory-kit.js";
 import { TIERS, UNRANKED, badge, tierOf, tierIndex, nextTier, tierProgress } from "./rank";
-import { submitGame, submitOverall, topGame, topOverall, myPlace, myUid, type Entry, type OverallEntry } from "./board";
+import { nameProblem } from "./names";
+import { makeCard, saveCard } from "./card";
+import { submitGame, submitOverall, topGame, topOverall, myPlace, myUid, removeMe, type Entry, type OverallEntry } from "./board";
 import { preloadPiano, stopAllSound, playRewardFx } from "./lib/engine";
 import { getNoteSystem, setNoteSystem } from "./lib/prefs";
 import type { NoteSystem } from "./lib/theory";
@@ -29,33 +32,24 @@ interface Game {
   id: string;
   name: string;
   line: string;
-  tint: string;
-  icon: string;
   storageKey: string;
   about: string[];
   load: () => Promise<{ open: Opener }>;
 }
 
-const svg = (body: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
-
 const GAMES: Game[] = [
-  { id: "visual-memory", name: "Visual", line: "Remember notes on the staff", tint: "#ffb547", storageKey: "smartear_visual_memory_v2", about: ["Notes flash on the staff for a few seconds, then vanish. Nothing plays: eyes only.", "Tap the staff where each note was. Pick ♭ ♮ ♯ first if a note needs one.", "A perfect board adds one more note. Three misses and the run is over."],
-    icon: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), load: () => import("./games/visual-memory.js") },
-  { id: "sequence-memory", name: "Sequence", line: "Play back a growing melody", tint: "#f39a6b", storageKey: "smartear_sequence_memory_v1", about: ["A melody plays, with its notes, lit keys or sound alone (your choice).", "Play it back on the piano in the same order.", "Each success adds one note to the same melody. How long can you go?"],
-    icon: svg('<path d="M4 18V14M10 18V10M16 18V6M22 18V3"/>'), load: () => import("./games/sequence-memory.js") },
-  { id: "pairs-memory", name: "Pairs", line: "Find matching sounds", tint: "#8fc4a0", storageKey: "smartear_pairs_memory_v1", about: ["Every card hides a sound, and every sound is on two cards.", "Tap a card to hear it, then find its twin. Nothing is timed.", "Clear every pair within the miss limit to move up a level."],
-    icon: svg('<rect x="3" y="5" width="8" height="14" rx="2"/><rect x="13" y="5" width="8" height="14" rx="2"/>'), load: () => import("./games/pairs-memory.js") },
-  { id: "hold-memory", name: "Pitch Hold", line: "Hold one note in your head", tint: "#9fb8e6", storageKey: "smartear_hold_memory_v1", about: ["One tone plays. Keep it in mind, without singing it.", "A stream of other notes tries to knock it out of your head.", "Find your tone again on the strip and lock it in."],
-    icon: svg('<path d="M12 3v10"/><circle cx="12" cy="17" r="4"/>'), load: () => import("./games/hold-memory.js") },
-  { id: "memory", name: "Compare", line: "Spot the note that changed", tint: "#e3a9c9", storageKey: "smartear_comparison_memory_v1", about: ["A melody plays while its notes light up on the staff.", "It plays again in the same key. Did any note change?", "If you heard a change, tap the note that changed."],
-    icon: svg('<path d="M3 9h18M3 15h18"/><circle cx="15" cy="9" r="2" fill="currentColor"/>'), load: () => import("./games/memory.js") },
-  { id: "relative-memory", name: "Relative", line: "Same tune, new key", tint: "#c7b4f0", storageKey: "smartear_relative_memory_v1", about: ["A melody plays while its notes light up on the staff.", "It plays again in a new key. Same tune, or did a note change?", "If you heard a change, tap the note that changed."],
-    icon: svg('<path d="M4 17l6-6 4 4 6-7"/><path d="M15 8h5v5"/>'), load: () => import("./games/memory.js").then((m) => ({ open: m.openRelative as Opener })) },
+  { id: "visual-memory", name: "Visual", line: "Remember notes on the staff", storageKey: "smartear_visual_memory_v2", about: ["Notes flash on the staff for a few seconds, then vanish. Nothing plays: eyes only.", "Tap the staff where each note was. Pick ♭ ♮ ♯ first if a note needs one.", "A perfect board adds one more note. Three misses and the run is over."], load: () => import("./games/visual-memory.js") },
+  { id: "sequence-memory", name: "Sequence", line: "Play back a growing melody", storageKey: "smartear_sequence_memory_v1", about: ["A melody plays, with its notes, lit keys or sound alone (your choice).", "Play it back on the piano in the same order.", "Each success adds one note to the same melody. How long can you go?"], load: () => import("./games/sequence-memory.js") },
+  { id: "pairs-memory", name: "Pairs", line: "Find matching sounds", storageKey: "smartear_pairs_memory_v1", about: ["Every card hides a sound, and every sound is on two cards.", "Tap a card to hear it, then find its twin. Nothing is timed.", "Clear every pair within the miss limit to move up a level."], load: () => import("./games/pairs-memory.js") },
+  { id: "hold-memory", name: "Pitch Hold", line: "Hold one note in your head", storageKey: "smartear_hold_memory_v1", about: ["One tone plays. Keep it in mind, without singing it.", "A stream of other notes tries to knock it out of your head.", "Find your tone again on the strip and lock it in."], load: () => import("./games/hold-memory.js") },
+  { id: "memory", name: "Compare", line: "Spot the note that changed", storageKey: "smartear_comparison_memory_v1", about: ["A melody plays while its notes light up on the staff.", "It plays again in the same key. Did any note change?", "If you heard a change, tap the note that changed."], load: () => import("./games/memory.js") },
+  { id: "relative-memory", name: "Relative", line: "Same tune, new key", storageKey: "smartear_relative_memory_v1", about: ["A melody plays while its notes light up on the staff.", "It plays again in a new key. Same tune, or did a note change?", "If you heard a change, tap the note that changed."], load: () => import("./games/memory.js").then((m) => ({ open: m.openRelative as Opener })) },
 ];
 
 // ---------------------------------------------------------------- saved progress
 interface Progress {
   best: Record<string, { score: number; level: number }>;
+  daily?: { date: string; score: number; level: number } | null;
   runs: number;
   streakDays: number;
   lastDay: string | null;
@@ -99,20 +93,47 @@ function playerName(): string {
     return "";
   }
 }
-function setPlayerName(v: string) {
+/** Save a name if it's allowed; returns the problem otherwise. */
+function setPlayerName(v: string): string | null {
+  const problem = nameProblem(v);
+  if (problem) return problem;
   try {
-    localStorage.setItem(NAME_KEY, v.trim().slice(0, 20));
+    localStorage.setItem(NAME_KEY, v.trim().replace(/\s+/g, " ").slice(0, 20));
   } catch {
     /* storage blocked */
   }
+  return null;
+}
+/** A name input that only saves allowed names and says why otherwise. */
+function nameField(onSaved?: () => void): { input: HTMLInputElement; msg: HTMLElement } {
+  const input = el("input", "name-input");
+  input.maxLength = 20;
+  input.placeholder = "Your player name";
+  input.setAttribute("autocomplete", "nickname");
+  input.value = playerName();
+  const msg = el("div", "name-msg");
+  const save = () => {
+    if (input.value.trim() === playerName()) return void (msg.textContent = "");
+    const problem = setPlayerName(input.value);
+    msg.textContent = problem ?? "Saved";
+    msg.className = "name-msg " + (problem ? "bad" : "ok");
+    if (!problem) onSaved?.();
+  };
+  input.addEventListener("change", save);
+  input.addEventListener("keydown", (e) => e.key === "Enter" && input.blur());
+  return { input, msg };
 }
 
 // ---------------------------------------------------------------- global leaderboard sync
 function ensureName(): string {
   let n = playerName().trim();
-  if (!n) {
+  if (!n || nameProblem(n)) {
     n = `Player${Math.floor(1000 + Math.random() * 9000)}`;
-    setPlayerName(n);
+    try {
+      localStorage.setItem(NAME_KEY, n);
+    } catch {
+      /* storage blocked */
+    }
   }
   return n;
 }
@@ -128,12 +149,36 @@ function bestEntry(p: Progress | null): { level: number; score: number; mode: st
   }
   return best;
 }
+const OFF_KEY = "smem:offBoard";
+function offBoard(): boolean {
+  try {
+    return localStorage.getItem(OFF_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function setOffBoard(v: boolean) {
+  try {
+    if (v) localStorage.setItem(OFF_KEY, "1");
+    else localStorage.removeItem(OFF_KEY);
+  } catch {
+    /* private mode */
+  }
+}
 async function syncGame(g: Game): Promise<boolean> {
-  const e = bestEntry(progressOf(g));
-  return e ? submitGame(g.id, { name: ensureName(), ...e }) : false;
+  if (offBoard()) return false;
+  const p = progressOf(g);
+  const e = bestEntry(p);
+  if (!e) return false;
+  const ok = await submitGame(g.id, { name: ensureName(), ...e });
+  // Today's Daily (the ranked first attempt) also goes on today's board.
+  const d = p?.daily;
+  if (d && d.date === todayKey() && d.level >= 1) await submitGame(g.id, { name: ensureName(), level: d.level, score: d.score, mode: "daily" }, d.date);
+  return ok;
 }
 async function syncOverall(): Promise<boolean> {
   const o = overall();
+  if (offBoard()) return false;
   return o.played ? submitOverall(ensureName(), o.rating, o.played) : false;
 }
 let syncTimer = 0;
@@ -181,7 +226,6 @@ function btn(text: string, cls: string, onClick: () => void) {
   b.addEventListener("click", onClick);
   return b;
 }
-const iconUrl = (g: Game) => `url("data:image/svg+xml,${encodeURIComponent(g.icon.replace('stroke="currentColor"', 'stroke="black"').replace(/fill="currentColor"/g, 'fill="black"').replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" '))}")`;
 
 function page(active: string): HTMLElement {
   closeGame();
@@ -189,7 +233,7 @@ function page(active: string): HTMLElement {
   const nav = el("header", "nav");
   const inner = el("div", "nav-inner");
   const logo = link("#/", "logo", "");
-  logo.innerHTML = `<span class="logo-mark">${svg('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>')}</span><span>Musical Memory</span>`;
+  logo.innerHTML = `<span class="logo-short">MM</span><span class="logo-full">Musical Memory</span>`;
   const links = el("nav", "nav-links");
   links.append(link("#/", active === "home" ? "on" : "", "Games"), link("#/top", active === "top" ? "on" : "", "Leaderboard"), link("#/me", active === "me" ? "on" : "", "Ranks"));
   const o = overall();
@@ -200,7 +244,11 @@ function page(active: string): HTMLElement {
   inner.append(logo, links);
   nav.append(inner);
   const main = el("main");
-  app.append(nav, main);
+  const foot = el("footer", "foot");
+  const fi = el("div", "foot-inner");
+  fi.append(el("span", "", "Musical Memory"), link("#/terms", "", "Terms"), link("#/privacy", "", "Privacy"));
+  foot.append(fi);
+  app.append(nav, main, foot);
   window.scrollTo(0, 0);
   return main;
 }
@@ -208,19 +256,16 @@ function page(active: string): HTMLElement {
 function tiles(): HTMLElement {
   const wrap = el("section", "tiles-wrap");
   const grid = el("div", "tiles");
-  GAMES.forEach((g) => {
+  GAMES.forEach((g, i) => {
     const a = link(`#/${g.id}`, "tile", "");
-    const icon = el("span", "tile-icon");
-    icon.style.setProperty("--tint", g.tint);
-    icon.innerHTML = g.icon;
     const lv = rankedLevel(progressOf(g));
     const t = tierOf(lv);
-    const corner = el("span", "tile-badge");
-    corner.innerHTML = badge(t, 30);
-    a.append(corner, icon, el("span", "tile-name", g.name), el("span", "tile-line", g.line));
-    const rk = el("span", "tile-rank", lv ? `${t.name} · Lv ${lv}` : "Unranked");
-    rk.style.color = lv ? t.color : "";
-    a.append(rk);
+    const text = el("span", "tile-text");
+    text.append(el("span", "tile-name", g.name), el("span", "tile-line", g.line));
+    const rk = el("span", "tile-rank");
+    rk.innerHTML = `${badge(t, 26)}<span></span>`;
+    (rk.querySelector("span") as HTMLElement).textContent = lv ? `${t.name} · Lv ${lv}` : "Unranked";
+    a.append(el("span", "tile-num", String(i + 1).padStart(2, "0")), text, rk, el("span", "tile-go", "Play"));
     grid.append(a);
   });
   wrap.append(grid);
@@ -257,14 +302,26 @@ function showHome() {
   if (o.played) {
     inner.append(rankCard(Math.floor(o.avg), "Your overall rank", `Rating ${fmt(o.rating)} · ${o.played}/6 games ranked`, overallNext(o)));
   }
+  if (!playerName()) {
+    const pick = el("div", "name-pick");
+    pick.append(el("div", "name-pick-label", "Choose your player name"));
+    const nf2 = nameField(() => {
+      syncAllSoon(200);
+      setTimeout(() => pick.remove(), 900);
+    });
+    const row = el("div", "name-pick-row");
+    row.append(nf2.input, btn("Save", "name-save", () => nf2.input.dispatchEvent(new Event("change"))));
+    pick.append(row, nf2.msg);
+    inner.append(pick);
+  }
   inner.append(link("#/visual-memory", "band-btn", o.played ? "Keep climbing" : "Start ranked"));
   hero.append(inner);
   main.append(hero, tiles());
   const prevWrap = el("section", "panels one");
   const prev = el("div", "panel");
   prev.append(el("h2", "", "Top players"));
-  const prevList = el("div", "board", "Loading…");
-  prev.append(prevList, link("#/top", "panel-link", "Full leaderboard →"));
+  const prevList = loadingBoard(5);
+  prev.append(prevList, link("#/top", "panel-link", "Full leaderboard"));
   prevWrap.append(prev);
   main.append(prevWrap);
   fillOverall(prevList, 5);
@@ -286,15 +343,10 @@ function showHome() {
   settings.append(el("h2", "", "Player"));
   const nameRow = el("label", "setting-row");
   nameRow.append(el("span", "", "Your name (shown on challenges)"));
-  const input = el("input", "name-input");
-  input.maxLength = 20;
-  input.placeholder = "Player";
-  input.value = playerName();
-  input.addEventListener("change", () => {
-    setPlayerName(input.value);
-    syncAllSoon(200);
-  });
-  nameRow.append(input);
+  const nf = nameField(() => syncAllSoon(200));
+  const nameCol = el("div", "name-col");
+  nameCol.append(nf.input, nf.msg);
+  nameRow.append(nameCol);
   const notes = el("div", "setting-row");
   notes.append(el("span", "", "Note names"));
   const seg = el("div", "seg");
@@ -361,7 +413,6 @@ async function showGame(game: Game, challenge: Challenge | null) {
   const my = ++token;
   const main = page("game");
   const band = el("section", "band game-band");
-  band.style.setProperty("--icon", iconUrl(game));
   if (challenge) {
     const sameDay = challenge.mode === "daily" && challenge.date === todayKey();
     const banner = el("div", "challenge-banner");
@@ -384,8 +435,11 @@ async function showGame(game: Game, challenge: Challenge | null) {
   about.append(ol, el("p", "fine", "Play: ranked, 3 lives. Daily: ranked, the same puzzle for everyone today. Practice: no lives, not ranked."));
   const topPanel = el("div", "panel wide");
   const topHead = el("div", "panel-head");
-  topHead.append(el("h2", "", "Top players"), link(`#/top?g=${game.id}`, "panel-link", "Full board →"));
-  const topList = el("div", "board", "Loading…");
+  topHead.append(el("h2", "", "Top players"));
+  const topLinks = el("div", "panel-links");
+  topLinks.append(link(`#/top?g=${game.id}&t=today`, "panel-link", "Today's Daily"), link(`#/top?g=${game.id}`, "panel-link", "Full board"));
+  topHead.append(topLinks);
+  const topList = loadingBoard(6);
   topPanel.append(topHead, topList);
   panels.append(stats, about, topPanel);
   main.append(band, panels);
@@ -410,10 +464,22 @@ async function showGame(game: Game, challenge: Challenge | null) {
     const ov = showRunEnd(game, r, prev, challenge && challenge.mode === r.mode ? challenge : null);
     const globalEl = ov.querySelector(".ov-global") as HTMLElement;
     (async () => {
+      const hasEntry = !!bestEntry(progressOf(game));
       const ok = await syncGame(game);
       await syncOverall();
-      const place = ok ? await myPlace(game.id) : null;
-      if (globalEl) globalEl.textContent = place && place.place ? `Global rank #${place.place} of ${place.total} on ${game.name}` : ok ? "" : "Leaderboard offline: your score is saved on this device.";
+      const place = ok ? await myPlace({ game: game.id }) : null;
+      const today = ok && r.mode === "daily" && r.counted ? await myPlace({ game: game.id, day: todayKey() }) : null;
+      if (globalEl) {
+        const parts: string[] = [];
+        if (today && today.place) parts.push(`Today #${today.place} of ${today.total}`);
+        if (place && place.place) parts.push(`All-time #${place.place} of ${place.total}`);
+        let msg = "";
+        if (parts.length) msg = parts.join(" · ");
+        else if (offBoard()) msg = "You're off the leaderboard. You can rejoin on the Privacy page.";
+        else if (!hasEntry) msg = "Reach level 1 to get on the leaderboard.";
+        else if (!ok) msg = "Leaderboard offline: your score is saved on this device.";
+        globalEl.textContent = msg;
+      }
       drawTop();
     })();
   };
@@ -463,7 +529,7 @@ function showRunEnd(g: Game, r: { score: number; level: number; mode: string; co
   const b = el("div", "ov-badge");
   b.innerHTML = badge(t, 112);
   card.append(b);
-  if (rankUp) card.append(el("div", "ov-tier", `${tierOf(oldLevel).name} → ${t.name}`));
+  if (rankUp) card.append(el("div", "ov-tier", `${tierOf(oldLevel).name} to ${t.name}`));
   else card.append(el("div", "ov-tier", t.name));
 
   const nums = el("div", "ov-nums");
@@ -486,18 +552,44 @@ function showRunEnd(g: Game, r: { score: number; level: number; mode: string; co
 
   const nameRow = el("label", "ov-name");
   nameRow.append(el("span", "", "Your name"));
-  const input = el("input", "name-input");
-  input.maxLength = 20;
-  input.placeholder = "Player";
-  input.value = playerName();
-  input.addEventListener("input", () => setPlayerName(input.value));
-  input.addEventListener("change", () => syncAllSoon(200));
-  nameRow.append(input);
+  const nf = nameField(() => syncAllSoon(200));
+  const nameCol = el("div", "name-col");
+  nameCol.append(nf.input, nf.msg);
+  nameRow.append(nameCol);
   const note = el("div", "ov-share-note");
   const actions = el("div", "ov-actions");
+  const save = btn("Save image", "ov-btn ghost", async () => {
+    save.disabled = true;
+    const was = save.textContent;
+    save.textContent = "Making…";
+    try {
+      const blob = await makeCard({
+        game: g.name,
+        mode: r.mode === "daily" ? "Daily" : "Classic",
+        headline,
+        tier: t,
+        level: r.level,
+        score: fmt(r.score),
+        place: (card.querySelector(".ov-global") as HTMLElement).textContent?.includes("#") ? (card.querySelector(".ov-global") as HTMLElement).textContent! : "",
+        player: playerName(),
+        vs: ch ? { name: ch.name, score: fmt(ch.score) } : null,
+      });
+      const how = await saveCard(blob, `musical-memory-${g.id}-${todayKey()}.png`);
+      note.textContent = how === "shared" ? "Shared!" : "Image saved. Post it with your video!";
+    } catch (e) {
+      console.warn(e);
+      note.textContent = "Couldn't make the image on this device.";
+    }
+    save.textContent = was;
+    save.disabled = false;
+  });
   actions.append(
     btn("Close", "ov-btn ghost", () => ov.remove()),
-    btn(ch ? "Challenge back" : "Challenge a friend", "ov-btn primary", () => shareChallenge(g, r, note)),
+    save,
+    btn(ch ? "Challenge back" : "Challenge a friend", "ov-btn primary", () => {
+      nf.input.dispatchEvent(new Event("change"));
+      if (!nameProblem(nf.input.value) || !nf.input.value.trim()) shareChallenge(g, r, note);
+    }),
   );
   card.append(nameRow, actions, note);
   ov.append(card);
@@ -516,7 +608,7 @@ function showRunEnd(g: Game, r: { score: number; level: number; mode: string; co
 
 /** A quick confetti burst behind the card. */
 function burst(host: HTMLElement, color: string) {
-  const colors = [color, "#ffffff", "#ff5a1f", "#ffd75e"];
+  const colors = [color, "#efe9df"];
   for (let i = 0; i < 36; i++) {
     const p = el("i", "confetti");
     const ang = Math.random() * Math.PI * 2;
@@ -589,10 +681,7 @@ function showDashboard() {
     const tr = el("tr");
     const name = el("td");
     const a = link(`#/${g.id}`, "row-link", "");
-    const ic = el("span", "mini-icon");
-    ic.style.setProperty("--tint", g.tint);
-    ic.innerHTML = g.icon;
-    a.append(ic, el("span", "", g.name));
+    a.append(el("span", "", g.name));
     name.append(a);
     const rk = el("td");
     rk.innerHTML = `<span class="rank-cell">${badge(t, 24)}<span>${t.name}</span></span>`;
@@ -629,7 +718,11 @@ function route() {
   const raw = location.hash.replace(/^#\/?/, "");
   const [id, q = ""] = raw.split("?");
   if (id === "me") return showDashboard();
-  if (id === "top") return showLeaderboard(new URLSearchParams(q).get("g"));
+  if (id === "terms" || id === "privacy") return showDoc(id);
+  if (id === "top") {
+    const qs = new URLSearchParams(q);
+    return showLeaderboard(qs.get("g"), qs.get("t") === "today");
+  }
   const game = GAMES.find((g) => g.id === id);
   if (game) showGame(game, parseChallenge(q));
   else showHome();
@@ -638,6 +731,85 @@ function route() {
 window.addEventListener("hashchange", route);
 preloadPiano();
 route();
+
+// ---------------------------------------------------------------- terms and privacy
+function showDoc(kind: "terms" | "privacy") {
+  // Kept inside: route() runs before top-level consts further down are set.
+  const REPO = "https://github.com/egsvi2508-debug/smartear-memory";
+  const UPDATED = "22 November 2026";
+  const my = ++token;
+  const main = page(kind);
+  document.title = `${kind === "terms" ? "Terms" : "Privacy"} · Musical Memory`;
+  const head = el("section", "band small");
+  const hi = el("div", "band-inner");
+  hi.append(el("div", "eyebrow", `Last updated ${UPDATED}`), el("h1", "hero-title", kind === "terms" ? "Terms of use" : "Privacy"));
+  head.append(hi);
+  const wrap = el("section", "panels one");
+  const doc = el("div", "panel doc");
+  const h = (t: string) => doc.append(el("h2", "", t));
+  const p = (t: string) => doc.append(el("p", "", t));
+  const contact = () => {
+    const para = el("p", "");
+    para.append("Questions or requests: open an issue on the ");
+    const a = link(`${REPO}/issues`, "", "project's GitHub page");
+    a.target = "_blank";
+    a.rel = "noopener";
+    para.append(a, ".");
+    doc.append(para);
+  };
+  if (kind === "terms") {
+    p("Musical Memory is a free set of ear training games. By playing, you agree to these terms.");
+    h("Playing fair");
+    p("Play the games yourself. Don't use scripts, edit saved data, or run several identities to push scores up the leaderboard. Entries that look faked can be removed, and boards can be reset, without notice.");
+    h("Player names");
+    p("Pick a nickname. No hateful, sexual or insulting names, and don't pretend to be someone else. The app blocks common offensive words, and other names that break this rule can be changed or removed.");
+    h("No warranty");
+    p("The games are provided as they are, with no guarantee that they work without errors or that scores and leaderboards are kept forever. Use them at your own risk.");
+    h("Credits");
+    p("Piano sound: Salamander Grand Piano by Alexander Holm, under CC BY 3.0, served by the Tone.js project. Music notation drawn with VexFlow.");
+    h("Changes");
+    p("These terms can change. The date at the top shows the latest version.");
+    contact();
+  } else {
+    p("Short version: no account, no email, no ads, no tracking. Your progress lives on your device. The leaderboard shows the nickname you pick and your scores.");
+    h("On your device");
+    p("Your progress, best scores, settings and nickname are kept in this browser's local storage. Nothing leaves your device for this. Clearing the site's data removes it.");
+    h("On the leaderboard");
+    p("When you finish a ranked run, the app signs you in anonymously with Google Firebase (no email or password) and saves your nickname, your best level and score in each game, your Daily results, your overall rating, and when they were last updated. Anyone can see these on the leaderboard.");
+    p("Firebase is run by Google, which handles your IP address and basic device information to provide the service. See Google's Firebase privacy page for details.");
+    h("Sounds");
+    p("The piano samples load from the Tone.js website, which sees your IP address like any website you visit.");
+    h("What we don't do");
+    p("No ads, no analytics, no tracking cookies, and nothing is sold or shared for marketing.");
+    h("Remove your scores");
+    const off = offBoard();
+    p(off ? "You're off the leaderboard. Your scores stay on this device only. You can rejoin at any time." : "This deletes your entries from every leaderboard (all games, overall, and the Daily boards of the last 60 days) and stops this device from posting new ones. Your progress on this device stays.");
+    const note = el("p", "doc-note");
+    const b = btn(off ? "Rejoin the leaderboard" : "Remove my scores", off ? "doc-btn" : "doc-btn danger", async () => {
+      b.disabled = true;
+      if (off) {
+        setOffBoard(false);
+        await Promise.all(GAMES.map(syncGame));
+        await syncOverall();
+        note.textContent = "You're back on the leaderboard.";
+      } else {
+        if (!confirm("Remove your scores from every leaderboard? This can't be undone, but you can rejoin later with the scores on this device.")) {
+          b.disabled = false;
+          return;
+        }
+        setOffBoard(true);
+        const ok = await removeMe(GAMES.map((g) => g.id));
+        note.textContent = ok ? "Done. Your scores are off the leaderboard." : "Couldn't reach the leaderboard. Try again when you're online.";
+        if (!ok) setOffBoard(false);
+      }
+      setTimeout(() => my === token && showDoc("privacy"), 1400);
+    });
+    doc.append(b, note);
+    contact();
+  }
+  wrap.append(doc);
+  main.append(head, wrap);
+}
 
 // ---------------------------------------------------------------- leaderboards
 function boardRow(pos: number, name: string, tierLevel: number, right: string, me: boolean): HTMLElement {
@@ -652,14 +824,27 @@ function boardRow(pos: number, name: string, tierLevel: number, right: string, m
   row.append(nm, el("span", "b-val", right));
   return row;
 }
+/** A board showing placeholder rows until the real ones arrive. */
+function loadingBoard(rows: number): HTMLElement {
+  const b = el("div", "board");
+  b.setAttribute("aria-busy", "true");
+  b.setAttribute("aria-label", "Loading leaderboard");
+  for (let i = 0; i < rows; i++) {
+    const r = el("div", "skel-row");
+    r.append(el("i", "skel s1"), el("i", "skel s2"), el("i", "skel s3"), el("i", "skel s4"));
+    b.append(r);
+  }
+  return b;
+}
 function emptyBoard(box: HTMLElement, rows: unknown[] | null) {
   box.innerHTML = "";
+  box.removeAttribute("aria-busy");
   if (rows === null) box.append(el("p", "empty", "The leaderboard can't be reached right now. Your scores are safe on this device."));
   else if (!rows.length) box.append(el("p", "empty", "No one on this board yet. Play a ranked run and take #1!"));
   return rows === null || !rows.length;
 }
-async function fillGame(box: HTMLElement, g: Game, n: number) {
-  const [rows, me] = await Promise.all([topGame(g.id, n), myUid()]);
+async function fillGame(box: HTMLElement, g: Game, n: number, day?: string) {
+  const [rows, me] = await Promise.all([topGame(g.id, n, day), myUid()]);
   if (!box.isConnected || emptyBoard(box, rows)) return;
   (rows as Entry[]).forEach((e, i) => box.append(boardRow(i + 1, e.name, e.level, `Lv ${e.level} · ${fmt(e.score)}`, e.uid === me)));
 }
@@ -669,10 +854,11 @@ async function fillOverall(box: HTMLElement, n: number) {
   (rows as OverallEntry[]).forEach((e, i) => box.append(boardRow(i + 1, e.name, Math.floor(e.rating / 100 / GAMES.length), `${fmt(e.rating)} · ${e.games}/6`, e.uid === me)));
 }
 
-function showLeaderboard(gameId: string | null) {
+function showLeaderboard(gameId: string | null, todayOnly = false) {
   token++;
   const main = page("top");
   const game = GAMES.find((g) => g.id === gameId) || null;
+  const day = game && todayOnly ? todayKey() : undefined;
   const band = el("section", "band small");
   const inner = el("div", "band-inner");
   inner.append(el("div", "eyebrow", "Worldwide"), el("h1", "hero-title", "Leaderboard"));
@@ -687,24 +873,31 @@ function showLeaderboard(gameId: string | null) {
   };
   tab("Overall", null);
   GAMES.forEach((g) => tab(g.name, g.id));
+  const when = el("div", "board-when");
+  if (game) {
+    const w = (label: string, today: boolean) => when.append(link(`#/top?g=${game.id}${today ? "&t=today" : ""}`, "when-btn" + (today === !!day ? " on" : ""), label));
+    w("All time", false);
+    w("Today's Daily", true);
+  }
 
   const panels = el("section", "panels one");
   const panel = el("div", "panel");
   panel.append(tabs);
+  if (game) panel.append(when);
   const head = el("div", "board-head");
   head.append(el("span", "", "#"), el("span", "", ""), el("span", "", "Player"), el("span", "", game ? "Level · score" : "Rating · games"));
-  const list = el("div", "board", "Loading…");
-  panel.append(head, list, el("p", "fine", game ? "Each player's best Classic or Daily run. Ranked by level, then score." : "Rating = 100 points for every ranked level across all six games."));
+  const list = loadingBoard(8);
+  panel.append(head, list, el("p", "fine", day ? "Today's Daily puzzle: everyone gets the same one, and only your first attempt counts. A fresh board every day." : game ? "Each player's best Classic or Daily run. Ranked by level, then score." : "Rating = 100 points for every ranked level across all six games."));
   panels.append(panel);
   main.append(band, panels);
   document.title = "Leaderboard · Musical Memory";
 
   syncAllSoon(0);
-  (game ? fillGame(list, game, 50) : fillOverall(list, 50)).then(async () => {
-    const pl = await myPlace(game ? game.id : null);
+  (game ? fillGame(list, game, 50, day) : fillOverall(list, 50)).then(async () => {
+    const pl = await myPlace(game ? { game: game.id, day } : null);
     if (!place.isConnected) return;
     if (!pl) place.textContent = "Leaderboard offline right now.";
-    else if (!pl.place) place.textContent = `${pl.total} player${pl.total === 1 ? "" : "s"} ranked. Play a ranked run to join them.`;
+    else if (!pl.place) place.textContent = `${pl.total} player${pl.total === 1 ? "" : "s"} ranked${day ? " today" : ""}. ${day ? "Play today's Daily" : "Play a ranked run"} to join them.`;
     else place.textContent = `You're #${pl.place} of ${pl.total} as ${ensureName()}.`;
   });
 }

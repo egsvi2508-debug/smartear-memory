@@ -1,10 +1,10 @@
-// pairs-memory.js — Sound Pairs: the classic card-matching game, for ears.
+// pairs-memory.js, Sound Pairs: the classic card-matching game, for ears.
 //
 // A board of face-down cards; every card hides a SOUND, and every sound is
 // on exactly two cards. Flip one, flip another: same sound → the pair stays
 // open and shows what it was; different → both turn back. Find every pair
 // before running out of misses. What's trained is associative / spatial
-// memory for sound — remembering WHERE you heard WHAT — which none of the
+// memory for sound, remembering WHERE you heard WHAT, which none of the
 // other memory games touch, and it's calm: nothing is timed.
 //
 // The sounds get harder to tell apart as the levels climb (and the board
@@ -106,7 +106,7 @@ const MOTIFS = [
   [0, 7, 12],
 ];
 
-/** Every item: { key, label, midis, mode } — two cards per item. */
+/** Every item: { key, label, midis, mode }, two cards per item. */
 function buildItems(rng, spec) {
   const { pairs, kind } = spec;
   if (kind === "wide" || kind === "close") {
@@ -170,11 +170,11 @@ function randomMelodies(rng, pairs, len) {
   });
 }
 
-// Calm pair colours — no reds, so a found pair never reads as "wrong".
+// Calm pair colours, no reds, so a found pair never reads as "wrong".
 const HUES = [160, 45, 265, 200, 130, 300, 185, 85, 230, 30];
 
 const TIPS = [
-  "Give every sound a word as you hear it — “low”, “bright”, “sad”. Words stick better than sounds.",
+  "Give every sound a word as you hear it, “low”, “bright”, “sad”. Words stick better than sounds.",
   "Flip cards you haven't heard yet before guessing: every new card is information.",
   "Sweep the board in rows. A fixed route makes positions easier to remember.",
   "When a card doesn't match, say its sound AND its place: “bright one, top left”.",
@@ -193,13 +193,13 @@ function createRunner(ctx) {
   let spec = null;
   let cards = [];
   let first = null; // index of the open, unmatched card
-  let pending = null; // [a, b] — a mismatch still showing
+  let pending = null; // [a, b], a mismatch still showing
   let pendingTimer = null;
   let mistakes = 0;
   let found = 0;
   let focus = 0;
   let roundIndex = 0;
-  let ending = false; // the round is decided — just waiting to reveal
+  let ending = false; // the round is decided, just waiting to reveal
 
   async function sound(item) {
     try {
@@ -261,7 +261,7 @@ function createRunner(ctx) {
 
   function flip(i) {
     const c = cards[i];
-    if (ctx.phase === "reveal") return ping(c); // the board is face up — listen freely
+    if (ctx.phase === "reveal") return ping(c); // the board is face up, listen freely
     if (ctx.phase !== "recall" || ending) return;
     if (pending) settlePending(); // tapping on moves the game along without waiting
     if (c.matched || i === first) return ping(c); // hear it again
@@ -311,8 +311,8 @@ function createRunner(ctx) {
     const n = spec.pairs;
     const spare = spec.budget - mistakes;
     let tip;
-    if (success) tip = spare >= Math.ceil(n / 2) ? `Only ${mistakes} miss${mistakes === 1 ? "" : "es"} — sharp memory. ${TIPS[roundIndex % TIPS.length]}` : `Board cleared with ${Math.max(0, spare)} miss${spare === 1 ? "" : "es"} to spare. ${TIPS[roundIndex % TIPS.length]}`;
-    else tip = `The misses ran out. Every card is face up now — tap any to hear it. ${TIPS[(roundIndex + 1) % TIPS.length]}`;
+    if (success) tip = spare >= Math.ceil(n / 2) ? `Only ${mistakes} miss${mistakes === 1 ? "" : "es"}, sharp memory. ${TIPS[roundIndex % TIPS.length]}` : `Board cleared with ${Math.max(0, spare)} miss${spare === 1 ? "" : "es"} to spare. ${TIPS[roundIndex % TIPS.length]}`;
+    else tip = `The misses ran out. Every card is face up now, tap any to hear it. ${TIPS[(roundIndex + 1) % TIPS.length]}`;
     ctx.finishRound({
       success,
       base: n * 12 + Math.max(0, spare) * 6,
@@ -383,7 +383,7 @@ const GAME = {
   modes: {
     classic: { blurb: "3 lives. Bigger boards, closer sounds." },
     daily: { blurb: "Same boards for everyone today." },
-    training: { blurb: "No lives — the board size follows you." },
+    training: { blurb: "No lives, the board size follows you." },
   },
   howTo: [
     ["Flip", "Tap a card to hear its sound. Nothing is timed."],

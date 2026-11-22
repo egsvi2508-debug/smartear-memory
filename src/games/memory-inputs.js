@@ -1,13 +1,13 @@
-// memory-inputs.js — the playable piano for the Memory suite (Sequence
+// memory-inputs.js, the playable piano for the Memory suite (Sequence
 // Memory), plus the standard "musical typing" computer-keyboard mapping.
 //
 // AIM, THEN RELEASE. On a phone the keys are narrow, and a fat-finger
 // press on the neighbouring key used to end a round the player actually
-// knew. So a press doesn't answer — it AIMS: the key under the finger
+// knew. So a press doesn't answer, it AIMS: the key under the finger
 // lights up, sounds, and a name bubble floats above the finger (which
 // would otherwise hide the key). Slide to another key and the aim follows;
 // lift to commit; slide well off the keyboard to cancel. The exercise and
-// its grading are unchanged — only the moment of commitment moves from
+// its grading are unchanged, only the moment of commitment moves from
 // "finger down" to "finger up", which is exactly where a misclick can
 // still be fixed.
 
@@ -43,8 +43,8 @@ export function keyName(m) {
 
 /**
  * createPiano(host, { low, high, onPreview(m), onPress(m), labels })
- *   onPreview — a key was aimed at (play its sound here)
- *   onPress   — a key was committed (grade it here)
+ *   onPreview, a key was aimed at (play its sound here)
+ *   onPress  , a key was committed (grade it here)
  */
 export function createPiano(host, { low = 60, high = 77, onPress, onPreview, labels = true }) {
   const wrap = el("div", "mk-piano");

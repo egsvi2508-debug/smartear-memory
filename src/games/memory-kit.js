@@ -1,30 +1,30 @@
-// memory-kit.js — the shared game shell for the Memory suite. Five games,
+// memory-kit.js, the shared game shell for the Memory suite. Five games,
 // five different kinds of memory, so the suite trains memory from every
 // side rather than one skill five ways:
-//   Visual Memory      SEE      — a notated snapshot (visuospatial)
-//   Sequence Memory    ORDER    — a growing melody, played back (serial)
-//   Sound Pairs        MATCH    — where each sound was (associative)
-//   Pitch Hold         HOLD     — one pitch kept through a wait (retention)
-//   Comparison Memory  COMPARE  — same melody or changed? (recognition)
+//   Visual Memory      SEE     , a notated snapshot (visuospatial)
+//   Sequence Memory    ORDER   , a growing melody, played back (serial)
+//   Sound Pairs        MATCH   , where each sound was (associative)
+//   Pitch Hold         HOLD    , one pitch kept through a wait (retention)
+//   Comparison Memory  COMPARE , same melody or changed? (recognition)
 //
 // Every memory game looks and flows the same, so moving between them costs
 // nothing to learn:
 //
-//   HUB      — best scores, day streak, one big "Play" (Classic) plus the
+//   HUB     , best scores, day streak, one big "Play" (Classic) plus the
 //              Daily Challenge and Training, a 3-step how-to, and tabs to
 //              jump to the other memory games.
-//   RUN      — HUD (quit · level · lives · score), an ivory "stage" card the
+//   RUN     , HUD (quit · level · lives · score), an ivory "stage" card the
 //              game draws into, a status line with progress pips, the game's
 //              own controls, and a shared result panel after every round.
-//   SUMMARY  — score count-up, personal-best ribbon, run stats, recent-runs
+//   SUMMARY , score count-up, personal-best ribbon, run stats, recent-runs
 //              chart, Play again.
 //
 // Modes, identical in every game:
-//   classic  — 3 lives. Success → next level; a miss costs a life and
+//   classic , 3 lives. Success → next level; a miss costs a life and
 //              replays the level. Third miss ends the run.
-//   daily    — Classic with a date-seeded RNG: the same content for everyone
+//   daily   , Classic with a date-seeded RNG: the same content for everyone
 //              today. Only the first run of the day is recorded.
-//   training — no lives, adaptive: success → level up, miss → level down.
+//   training, no lives, adaptive: success → level up, miss → level down.
 //              A 1-up/1-down staircase keeps you working right at the edge
 //              of your span, which is where memory actually improves.
 //
@@ -33,15 +33,15 @@
 // provides and reports each round's outcome through ctx.finishRound().
 //
 // Progress persists per game to localStorage and, when signed in, Firestore
-// users/{uid}/modules/{docId} — same doc-per-module convention and
+// users/{uid}/modules/{docId}, same doc-per-module convention and
 // fire-and-forget writes as Register ID's progress doc.
 
 import { ensureAudioReady, stopAllSound, playCorrectFx, playWrongFx, Tone } from "./audio.js";
 
 /** SmartEar v2 hooks, set by the island wrapper:
- *  load(docId) / save(docId, progress) — account sync through the app store;
- *  onRound(gameId, outcome)             — every finished round (learning engine);
- *  onRunEnd(gameId, run)                — the end of a run (session, XP). */
+ *  load(docId) / save(docId, progress), account sync through the app store;
+ *  onRound(gameId, outcome)            , every finished round (learning engine);
+ *  onRunEnd(gameId, run)               , the end of a run (session, XP). */
 /** @type {{ load: null | ((docId: string) => Promise<any>), save: null | ((docId: string, p: any) => void), onRound: null | ((gameId: string, o: any) => void), onRunEnd: null | ((gameId: string, r: any) => void) }} */
 export const mkHooks = { load: null, save: null, onRound: null, onRunEnd: null };
 
@@ -50,7 +50,7 @@ const HISTORY_LEN = 40;
 const AUTO_NEXT_MS = 1600;
 const MODE_IDS = ["classic", "daily", "training"];
 
-/** The Memory suite, in menu order — drives the tab row on every hub. */
+/** The Memory suite, in menu order, drives the tab row on every hub. */
 export const SUITE = [
   { id: "visual-memory", label: "Visual", type: "See" },
   { id: "sequence-memory", label: "Sequence", type: "Order" },
@@ -152,7 +152,7 @@ function defaultProgress() {
   return { best, daily: null, runs: 0, units: 0, streakDays: 0, lastDay: null, history: [] };
 }
 
-/** legacy: { oldModeId: newModeId } — folds bests/history from a game's
+/** legacy: { oldModeId: newModeId }, folds bests/history from a game's
  *  earlier mode names into the current ones (Visual Memory's first rebuild
  *  shipped "chords"/"scatter" modes, now both part of Classic). */
 function sanitizeProgress(p, legacy = {}) {
@@ -197,7 +197,7 @@ function saveLocal(key, p) {
   try {
     localStorage.setItem(key, JSON.stringify(p));
   } catch {
-    /* private browsing / quota — in-memory progress still works */
+    /* private browsing / quota, in-memory progress still works */
   }
 }
 
@@ -208,7 +208,7 @@ async function loadProgress({ key, docId, legacy }) {
     const raw = await mkHooks.load(docId);
     if (raw) {
       const remote = sanitizeProgress(raw, legacy);
-      // Whichever has seen more runs wins — covers playing signed-out for a
+      // Whichever has seen more runs wins, covers playing signed-out for a
       // while, then signing back in on this device.
       const pickP = remote.runs >= local.runs ? remote : local;
       saveLocal(key, pickP);
@@ -230,7 +230,7 @@ function persistProgress(p, { key, docId }) {
 }
 
 /** stopAllSound() leaves the shared output MUTED until something calls
- *  ensureAudioReady() again (see audio.js) — the right/wrong chimes don't,
+ *  ensureAudioReady() again (see audio.js), the right/wrong chimes don't,
  *  so un-mute right before them or they'd play into silence. */
 function playFx(ok) {
   try {
@@ -242,7 +242,7 @@ function playFx(ok) {
 }
 
 /** Unlock audio from inside the user's own tap/keypress (iOS only allows
- *  starting the AudioContext synchronously within a gesture) — the games
+ *  starting the AudioContext synchronously within a gesture), the games
  *  play their first notes later, from timers, which wouldn't count. */
 function unlockAudio() {
   ensureAudioReady().catch(() => {});
@@ -277,7 +277,7 @@ function savePrefs(key, prefs) {
  * }
  */
 // `start` (the basic list's levels bar) skips the hub: a Training run (no
-// lives; the level follows you) from that level — or, for a game with a cue
+// lives; the level follows you) from that level, or, for a game with a cue
 // setting (Sequence), with that cue from level 1. Leaving the run exits.
 export function openMemoryGame(container, game, { onExit, openModule, start } = {}) {
   document.body.classList.add("mode-train");
@@ -312,7 +312,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     timers.clear();
   }
 
-  // Mouse/touch clicks shouldn't leave a button focused — otherwise the
+  // Mouse/touch clicks shouldn't leave a button focused, otherwise the
   // next Space/Enter shortcut would ALSO re-click that button natively.
   root.addEventListener("click", (e) => {
     const b = e.target.closest && e.target.closest("button");
@@ -400,7 +400,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     const today = todayKey();
     const dailyDone = progress.daily && progress.daily.date === today;
     const daily = el("button", "mk-more-btn" + (dailyDone ? " done" : ""));
-    daily.innerHTML = `<span class="mk-more-name">${dailyDone ? "✓ " : ""}Daily</span><span class="mk-more-sub">${dailyDone ? `Today: ${fmt(progress.daily.score)}` : "Same puzzle for everyone"}</span>`;
+    daily.innerHTML = `<span class="mk-more-name">Daily${dailyDone ? " (played)" : ""}</span><span class="mk-more-sub">${dailyDone ? `Today: ${fmt(progress.daily.score)}` : "Same puzzle for everyone"}</span>`;
     daily.addEventListener("click", () => startRun("daily"));
     const training = el("button", "mk-more-btn");
     training.innerHTML = `<span class="mk-more-name">Practice</span><span class="mk-more-sub">No lives, no pressure</span>`;
@@ -485,7 +485,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     const hearts = [];
     if (training) {
       livesEl.appendChild(el("span", "mk-lives-inf", "∞"));
-      livesEl.title = "Training — no lives";
+      livesEl.title = "Training, no lives";
     } else {
       for (let i = 0; i < LIVES; i++) {
         const h = el("span", "mk-heart", "♥");
@@ -510,7 +510,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     splash.append(splashTitle, splashSub);
     card.append(timer, stage, splash);
 
-    // Nothing overlays the stage card — in a memory game a badge sitting on
+    // Nothing overlays the stage card, in a memory game a badge sitting on
     // the staff could hide a note. Combo + placement readout live here.
     const status = el("div", "mk-status");
     const statusLeft = el("div", "mk-status-left");
@@ -547,7 +547,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     let autoTimer = null;
 
     /** Any interaction with the reveal (Hear it, Replay…) means "I'm
-     *  studying this" — stop the auto-advance so it doesn't cut them off. */
+     *  studying this", stop the auto-advance so it doesn't cut them off. */
     function cancelAuto() {
       if (autoTimer === null) return;
       clearTimeout(autoTimer);
@@ -870,7 +870,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
 
     let line;
     const best = progress.best[run.mode];
-    if (run.mode === "daily" && run.counted) line = "Today's challenge is logged. New content tomorrow — keep the streak alive.";
+    if (run.mode === "daily" && run.counted) line = "Today's challenge is logged. New content tomorrow, keep the streak alive.";
     else if (newBest && run.bestBefore) line = `You beat your old best of ${fmt(run.bestBefore)}.`;
     else if (newBest) line = "First score on the board. Now beat it.";
     else if (training) line = `You worked around level ${(run.levelSum / Math.max(1, run.rounds)).toFixed(1)}. Consistency here is what moves your span.`;

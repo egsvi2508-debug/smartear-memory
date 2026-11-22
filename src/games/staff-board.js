@@ -1,15 +1,15 @@
-// staff-board.js — the staff every Memory game is played on.
+// staff-board.js, the staff every Memory game is played on.
 //
 // One component, three games (Visual / Sequence / Comparison Memory): a
 // treble, bass or grand staff divided into COLUMNS (time slots), with notes
 // drawn per column. It is both a display (flash a snapshot,
 // follow a melody as it plays) and an input surface:
-//   "place"  — tap/click a spot to put a note there (Visual Memory)
-//   "select" — tap a column to pick that note (Comparison Memory)
+//   "place" , tap/click a spot to put a note there (Visual Memory)
+//   "select", tap a column to pick that note (Comparison Memory)
 //
 // Deliberately NOT js/notation.js's renderNotation: that one folds extreme
 // registers into a comfortable window and re-picks clefs from content, which
-// is right for display-only reveals but wrong here — in a memory game the
+// is right for display-only reveals but wrong here, in a memory game the
 // picture you studied and the surface you answer on have to be the SAME
 // picture, pixel for pixel. Staves/clefs are drawn once per layout by
 // VexFlow; noteheads, stems, accidentals and ledger lines are individual
@@ -18,7 +18,7 @@
 //
 // Pitch positions are DIATONIC STEPS ("d"): d = octave * 7 + letterIndex,
 // so middle C (C4) = 28, treble top line F5 = 38, bass top line A3 = 26.
-// Even d = on a line (ledger lines included), odd d = in a space — and on a
+// Even d = on a line (ledger lines included), odd d = in a space, and on a
 // grand staff that parity stays continuous across middle C.
 
 /* global Vex */
@@ -83,7 +83,7 @@ const LAYOUTS = {
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 /** A standalone engraved accidental (♭ ♮ ♯ from the same SMuFL font the
- *  staff uses) as a small inline SVG, colored by currentColor — for
+ *  staff uses) as a small inline SVG, colored by currentColor, for
  *  buttons, where system fonts render these symbols wildly unevenly. */
 export function accidentalIcon(alter) {
   const div = document.createElement("div");
@@ -116,7 +116,7 @@ function svgEl(tag, attrs) {
  *   minWidth: narrowest the drawing gets (viewBox units)
  *   head:     "whole" | "black";  stems: draw stems on single-note columns
  *   guides:   faint column bands (a visible grid of slots)
- *   minScale / maxScale: rendered px per viewBox unit bounds — below
+ *   minScale / maxScale: rendered px per viewBox unit bounds, below
  *             minScale the board scrolls horizontally instead of shrinking.
  *   onPlace(col, d), onHover(pos|null), onSelect(col)
  */
@@ -478,7 +478,7 @@ export function createStaffBoard(host, options = {}) {
 
   return {
     el: wrap,
-    /** Change layout/columns/etc. — rebuilds the static staff. */
+    /** Change layout/columns/etc., rebuilds the static staff. */
     configure(next) {
       const changed = Object.keys(next).some((k) => next[k] !== opts[k]);
       Object.assign(opts, next);

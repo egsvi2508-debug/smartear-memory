@@ -1,20 +1,20 @@
-// sequence-memory.js — Sequence Memory: Simon, on a real piano.
+// sequence-memory.js, Sequence Memory: Simon, on a real piano.
 //
 // A melody plays; you play it back on the keyboard. Get it right and the
 // SAME melody returns one note longer (the classic Simon / Corsi-span
-// structure — the growing sequence is the point: you rehearse the old part
+// structure, the growing sequence is the point: you rehearse the old part
 // and add one new link each round). A miss costs a life and replays the
 // same melody, so you get to fix exactly the spot that slipped.
 //
 // What you get while it plays is your choice (a hub setting, remembered):
-//   notes — the melody's notation, each note lighting as it sounds
-//   keys  — the piano keys light up (pure Simon: sound + position)
-//   ear   — sound only, the hardest
+//   notes, the melody's notation, each note lighting as it sounds
+//   keys , the piano keys light up (pure Simon: sound + position)
+//   ear  , sound only, the hardest
 // Harder cues score more (×1.25 notes, ×1.5 ear) so one best score stays
 // fair across them.
 //
-// The melody is a random tonal walk — steps, skips and the odd leap, never
-// a stock pattern — with chromatic notes creeping in from level 6. It stays
+// The melody is a random tonal walk, steps, skips and the odd leap, never
+// a stock pattern, with chromatic notes creeping in from level 6. It stays
 // inside the on-screen keyboard (C4–F5), graded by exact pitch, one tap at
 // a time: every right note drops onto the staff in green, the first wrong
 // one ends the round.
@@ -29,7 +29,7 @@ import { openMemoryGame, el, pick } from "./memory-kit.js";
 export const meta = {
   id: "sequence-memory",
   name: "Sequence Memory",
-  blurb: "A melody plays — play it back on the piano. Every success adds one more note to the same melody.",
+  blurb: "A melody plays, play it back on the piano. Every success adds one more note to the same melody.",
   selfGuided: true,
 };
 
@@ -37,9 +37,9 @@ const READY_MS = 800;
 const LOW = 60; // C4
 const HIGH = 77; // F5
 const CUES = {
-  notes: { label: "Notes + sound", icon: "🎼", factor: 1.25 },
-  keys: { label: "Keys + sound", icon: "🎹", factor: 1 },
-  ear: { label: "Sound only", icon: "👂", factor: 1.5 },
+  notes: { label: "Notes + sound", icon: "", factor: 1.25 },
+  keys: { label: "Keys + sound", icon: "", factor: 1 },
+  ear: { label: "Sound only", icon: "", factor: 1.5 },
 };
 
 function label(n) {
@@ -97,9 +97,9 @@ function motion(from, to) {
 }
 
 const TIPS = [
-  "Sing it back in your head before your hands move — the ear leads, the fingers follow.",
+  "Sing it back in your head before your hands move, the ear leads, the fingers follow.",
   "Chunk it: hear the melody as short groups of 3–4 notes, not one long string.",
-  "Track the contour — up, up, down — and the pitches have fewer places to hide.",
+  "Track the contour, up, up, down, and the pitches have fewer places to hide.",
   "Only the last note is new each round. Replay the old part fast, save your focus for the new one.",
   "Notice where it lands: melodies love to rest on the home note of the key.",
 ];
@@ -121,7 +121,7 @@ function createRunner(ctx) {
     minScale: 0.55,
     maxScale: 1.9,
   });
-  ctx.hudTag(`${CUES[cue].icon} ${CUES[cue].label}`);
+  ctx.hudTag(CUES[cue].label);
 
   const pianoWrap = el("div", "mk-piano-wrap");
   // Aim-then-release piano (see memory-inputs.js): the key sounds while
@@ -167,7 +167,7 @@ function createRunner(ctx) {
    *  the key while it was being aimed). */
   function press(m, withSound = true) {
     if (ctx.phase !== "recall") {
-      // Free play on the reveal — handy for trying the melody out.
+      // Free play on the reveal, handy for trying the melody out.
       if (ctx.phase === "reveal") {
         piano.flash(m, "lit", 250);
         if (withSound) sound(m);
@@ -205,9 +205,9 @@ function createRunner(ctx) {
     else {
       const t = melody[idx];
       const playedName = nameOfMidi(played, t);
-      tip = `Note ${idx + 1} was ${label(t)}${idx > 0 ? ` — ${motion(melody[idx - 1], t)}` : ""}. You played ${playedName}.`;
+      tip = `Note ${idx + 1} was ${label(t)}${idx > 0 ? `, ${motion(melody[idx - 1], t)}` : ""}. You played ${playedName}.`;
       if (played % 12 === t.midi % 12) tip += " Right note, wrong octave.";
-      else if (idx + 1 < n && played === melody[idx + 1].midi) tip += " That was the NEXT note — you skipped one.";
+      else if (idx + 1 < n && played === melody[idx + 1].midi) tip += " That was the NEXT note, you skipped one.";
       else if (idx > 0 && played === melody[idx - 1].midi) tip += " That repeated the note before.";
       tip += ` ${TIPS[(roundIndex + 2) % TIPS.length]}`;
     }
@@ -219,7 +219,7 @@ function createRunner(ctx) {
       title: success ? undefined : idx ? `${idx} of ${n} played` : "Missed the first note",
       tip,
       legend: success ? null : [["good", "Played"], ["bad", "Slipped here"], ["missed", "Not reached"]],
-      actions: [{ label: "🔊 Hear it", key: "h", onClick: hear }],
+      actions: [{ label: "Hear it", key: "h", onClick: hear }],
     });
   }
 
@@ -261,7 +261,7 @@ function createRunner(ctx) {
     piano.clear();
     ctx.timer.reset(false);
     ctx.setPhase("ready");
-    ctx.splash(retry ? "Again" : `Level ${run.level}`, retry ? "Same melody — listen closely" : `${desired} notes`);
+    ctx.splash(retry ? "Again" : `Level ${run.level}`, retry ? "Same melody, listen closely" : `${desired} notes`);
     ctx.status(retry ? "Same melody again…" : "Get ready…");
     ctx.pips(new Array(desired).fill(""));
     ctx.later(listen, READY_MS);
@@ -333,7 +333,7 @@ function renderSettings(slot, prefs, setPref) {
     const b = el("button", "mk-seg-btn" + (id === current ? " active" : ""));
     b.setAttribute("role", "radio");
     b.setAttribute("aria-checked", String(id === current));
-    b.append(el("span", "mk-seg-icon", c.icon), el("span", "mk-seg-label", c.label), el("span", "mk-seg-sub mono", c.factor === 1 ? "×1 pts" : `×${c.factor} pts`));
+    b.append(el("span", "mk-seg-label", c.label), el("span", "mk-seg-sub mono", c.factor === 1 ? "×1 pts" : `×${c.factor} pts`));
     b.addEventListener("click", () => {
       setPref("cue", id);
       seg.querySelectorAll(".mk-seg-btn").forEach((x) => {
@@ -360,11 +360,11 @@ const GAME = {
   modes: {
     classic: { blurb: "3 lives. A miss replays the same melody so you can fix the spot that slipped." },
     daily: { blurb: "Same melody for everyone today." },
-    training: { blurb: "No lives — the melody follows you." },
+    training: { blurb: "No lives, the melody follows you." },
   },
   howTo: [
-    ["Listen", "A melody plays — with its notes, lit keys, or sound alone (your choice above)."],
-    ["Play", "Play it back in order. A key only counts when you lift your finger — hit the wrong one? Slide to the right key first."],
+    ["Listen", "A melody plays, with its notes, lit keys, or sound alone (your choice above)."],
+    ["Play", "Play it back in order. A key only counts when you lift your finger, hit the wrong one? Slide to the right key first."],
     ["Grow", "Each success adds one note to the SAME melody. How long can you go?"],
   ],
   keysHint: "<kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd><kbd>;</kbd><kbd>'</kbd> white keys from C4 · <kbd>W</kbd><kbd>E</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd><kbd>O</kbd><kbd>P</kbd> black keys",

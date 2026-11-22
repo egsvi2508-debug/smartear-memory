@@ -1,4 +1,4 @@
-// memory.js — two "same melody, or did one note change?" games:
+// memory.js, two "same melody, or did one note change?" games:
 //
 //   Comparison (id "memory"): the melody plays twice in the SAME key. The
 //   difficulty is length and interval size: from 5 notes moving by step to
@@ -344,7 +344,7 @@ function createRunner(ctx, transposed) {
     board.setActiveColumn(null);
     ctx.pips(new Array(spec.len).fill(""));
     ctx.setPhase("judge");
-    ctx.status("Same melody — or did a note change?");
+    ctx.status("Same melody, or did a note change?");
   }
 
   function startSelect() {
@@ -381,7 +381,7 @@ function createRunner(ctx, transposed) {
       base: comp.altered ? 10 + spec.len * 4 : 8 + spec.len * 3,
       partial: 0,
       units: [correct ? 1 : 0, 1],
-      title: correct ? (saidChanged ? "Found it" : "Same — well heard") : saidChanged && comp.altered ? "Wrong note" : saidChanged ? "It was the same" : "It changed",
+      title: correct ? (saidChanged ? "Found it" : "Same, well heard") : saidChanged && comp.altered ? "Wrong note" : saidChanged ? "It was the same" : "It changed",
       tip,
       legend,
       actions: [
@@ -403,15 +403,15 @@ function createRunner(ctx, transposed) {
 
   function relativeTip(correct, saidChanged, col) {
     const moved = `moved ${comp.shift > 0 ? "up" : "down"} ${IV_NAMES[Math.abs(comp.shift)]}`;
-    const far = comp.distance >= 5 ? " — one of the most distant keys, the hardest kind to compare" : comp.distance <= 1 ? " — a closely related key, the easiest kind" : "";
-    if (!comp.altered) return saidChanged ? `Nothing changed. Note ${col + 1} only sounded different because the whole melody was ${moved}${far}.` : `Nothing changed — the replay was only ${moved}${far}.`;
+    const far = comp.distance >= 5 ? ", one of the most distant keys, the hardest kind to compare" : comp.distance <= 1 ? ", a closely related key, the easiest kind" : "";
+    if (!comp.altered) return saidChanged ? `Nothing changed. Note ${col + 1} only sounded different because the whole melody was ${moved}${far}.` : `Nothing changed, the replay was only ${moved}${far}.`;
     const i = comp.alteredIndex;
     const became = spellMidi(comp.newMidi - comp.shift, alterOf);
     const kind = { dd: "a scale note swapped for another scale note", nd: "a chromatic note straightened into the scale", nn: "one chromatic note swapped for another" }[comp.type];
-    const what = `${label(spelled[i])} became ${label(became)} — ${kind}`;
+    const what = `${label(spelled[i])} became ${label(became)}, ${kind}`;
     if (correct) return `Note ${i + 1}: ${what}. The replay was ${moved}${far}.`;
-    if (saidChanged) return `Close — something did change, but it was note ${i + 1}, not note ${col + 1}: ${what}. The replay was ${moved}${far}.`;
-    return `Note ${i + 1} changed: ${what}. The key change can mask it — the replay was ${moved}${far}. Replay both and listen for it.`;
+    if (saidChanged) return `Close, something did change, but it was note ${i + 1}, not note ${col + 1}: ${what}. The replay was ${moved}${far}.`;
+    return `Note ${i + 1} changed: ${what}. The key change can mask it, the replay was ${moved}${far}. Replay both and listen for it.`;
   }
 
   async function replay(midis, isReplay) {
