@@ -1,7 +1,16 @@
-Background music
+Background music: all CC0 1.0 (public domain). Free to use anywhere,
+including videos and reels. No credit required.
 
-"Level 1", "Level 2", "Level 3", "Ending"
-from "5 Chiptunes (Action)" / Retro Game Music Pack by Juhani Junkala (SubspaceAudio)
-https://opengameart.org/content/5-chiptunes-action
-License: CC0 1.0 (public domain) https://creativecommons.org/publicdomain/zero/1.0/
-Converted from WAV to 128 kbps MP3; otherwise unchanged.
+Holizna (HoliznaCC0), "This music is public domain Cc0, so use it how you want!"
+  Happy Lo-Fi (Lofi Collection)   https://opengameart.org/content/happy-lo-fi-lofi-collection
+  Chill Beats (Collection)        https://opengameart.org/content/chill-beats-collection
+  Sad Lo-Fi (Lofi Collection)     https://opengameart.org/content/sad-lo-fi-lofi-collectioni
+  Support the artist: https://www.buymeacoffee.com/holizna
+
+TAD, lofi Compilation (CC0)
+  https://opengameart.org/content/lofi-compilation
+
+omfgdude, Chill lofi inspired (CC0)
+  https://opengameart.org/content/chill-lofi-inspired
+
+Files were re-encoded (96 kbps MP3, volume-levelled); the music is unchanged.
