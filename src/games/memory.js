@@ -432,6 +432,9 @@ function createRunner(ctx, transposed) {
   diffBtn.addEventListener("click", startSelect);
   backBtn.addEventListener("click", backToJudge);
 
+  // Dev builds only (removed from the published site): lets tests read the answer.
+  if (import.meta.env && import.meta.env.DEV) globalThis.__compare = { answer: () => (comp ? (comp.altered ? comp.alteredIndex + 1 : "s") : null) };
+
   return {
     startRound,
     onKey(e) {

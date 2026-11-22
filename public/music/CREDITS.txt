@@ -1,0 +1,7 @@
+Background music
+
+"Level 1", "Level 2", "Level 3", "Ending"
+from "5 Chiptunes (Action)" / Retro Game Music Pack by Juhani Junkala (SubspaceAudio)
+https://opengameart.org/content/5-chiptunes-action
+License: CC0 1.0 (public domain) https://creativecommons.org/publicdomain/zero/1.0/
+Converted from WAV to 128 kbps MP3; otherwise unchanged.

@@ -23,7 +23,8 @@ import { keySpelling, noteLabel } from "./theory.js";
 import { getNoteSystem } from "./settings.js";
 import { ensureAudioReady, playNotes, stopAllSound } from "./audio.js";
 import { createStaffBoard, letterOf, midiOf, spelledOf } from "./staff-board.js";
-import { createPiano, MUSICAL_TYPING } from "./memory-inputs.js";
+import { createPiano } from "./memory-inputs.js";
+import { noteFromKey, getScheme, renderKeysChoice } from "../lib/keys";
 import { openMemoryGame, el, pick } from "./memory-kit.js";
 
 export const meta = {
@@ -309,12 +310,23 @@ function createRunner(ctx) {
     ctx.status(`Play it back · note 1 of ${melody.length}`);
   }
 
+  let lastTyped = null;
   return {
     startRound,
     onKey(e) {
       if (e.repeat || ctx.phase !== "recall") return false;
-      const m = MUSICAL_TYPING[e.key.toLowerCase()];
-      if (m === undefined) return false;
+      const n = noteFromKey(e);
+      if (!n) return false;
+      let m;
+      if (getScheme() === "piano") m = LOW + n.pc + 12 * n.octave;
+      else {
+        // One key per note name: take the octave closest to the last note played.
+        const near = lastTyped ?? LOW + 5;
+        m = LOW + n.pc;
+        while (m + 12 <= HIGH && Math.abs(m + 12 - near) < Math.abs(m - near)) m += 12;
+      }
+      if (m < LOW || m > HIGH) return false;
+      lastTyped = m;
       press(m, true);
       return true;
     },
@@ -344,6 +356,7 @@ function renderSettings(slot, prefs, setPref) {
     seg.appendChild(b);
   });
   slot.appendChild(seg);
+  renderKeysChoice(slot);
 }
 
 const GAME = {

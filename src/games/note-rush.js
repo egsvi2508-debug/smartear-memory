@@ -13,6 +13,7 @@ import { playNotes, stopAllSound, unmute } from "./audio.js";
 import { noteLabel } from "./theory.js";
 import { getNoteSystem } from "./settings.js";
 import { openMemoryGame, el, pick, randInt } from "./memory-kit.js";
+import { noteFromKey, keysHint, renderKeysChoice } from "../lib/keys";
 
 const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
 const LETTER_PC = [0, 2, 4, 5, 7, 9, 11];
@@ -44,14 +45,47 @@ function clefsFor(L) {
 // cards with no sharps or flats in the key.
 const NO_KEYSIG = new Set(["soprano", "mezzo-soprano", "baritone-c"]);
 
-// Computer-keyboard layouts.
-const PIANO_ROW = { KeyA: 0, KeyW: 1, KeyS: 2, KeyE: 3, KeyD: 4, KeyF: 5, KeyT: 6, KeyG: 7, KeyY: 8, KeyH: 9, KeyU: 10, KeyJ: 11 };
-const LAYOUTS = {
-  letters: { label: "Letters", sub: "Shift = ♯" },
-  piano: { label: "Piano rows", sub: "ASDF + WETYU" },
+
+// How long a card stays. Auto learns your pace (faster when you're quick and
+// right, slower after a miss); Very fast = the level's own time; Slow has no clock.
+const SPEEDS = {
+  auto: { label: "Auto", mult: 1, auto: true },
+  fast: { label: "Very fast", mult: 1 },
+  medium: { label: "Medium", mult: 1.8 },
+  slow: { label: "Slow", mult: 0 },
 };
 
 const mod = (n, m) => ((n % m) + m) % m;
+
+// Auto pace: the time a one-note card gets, kept between visits.
+const PACE_KEY = "hears:noteRushPace";
+const PACE_MIN = 1200;
+const PACE_MAX = 7000;
+function readPace() {
+  try {
+    const v = Number(localStorage.getItem(PACE_KEY));
+    return v >= PACE_MIN && v <= PACE_MAX ? v : 3500;
+  } catch {
+    return 3500;
+  }
+}
+function savePace(v) {
+  try {
+    localStorage.setItem(PACE_KEY, String(Math.round(v)));
+  } catch {
+    /* ignore */
+  }
+}
+/** Right answer in r ms: drift toward ~1.4× your time, so the clock follows
+ *  you down as you get quicker and always leaves a little room. */
+export function paceAfterHit(t, r) {
+  const next = (0.8 * t + 0.2 * Math.max(r * 1.5, 900)) * 0.98;
+  return Math.max(PACE_MIN, Math.min(PACE_MAX, next));
+}
+/** A miss or a timeout: give more time. */
+export function paceAfterMiss(t) {
+  return Math.min(PACE_MAX, t * 1.3);
+}
 
 /** Level → how cards are made. */
 export function spec(level) {
@@ -64,7 +98,7 @@ export function spec(level) {
     ledger: L >= 8 ? 2 : L >= 5 ? 1 : 0,
     dyad: L >= 7 ? Math.min(0.6, 0.3 + 0.05 * (L - 7)) : 0,
     written: L >= 9 ? Math.min(0.3, 0.12 + 0.03 * (L - 9)) : 0,
-    ms: Math.max(650, Math.round(3000 - 230 * (L - 1))),
+    ms: Math.max(1400, Math.round(3400 - 150 * (L - 1))),
   };
 }
 
@@ -135,7 +169,9 @@ function drawStaff(host, card) {
 
 function createRunner(ctx) {
   const { run, rng, stage, controls, fx } = ctx;
-  const layout = LAYOUTS[ctx.prefs.keys] ? ctx.prefs.keys : "letters";
+  const speed = SPEEDS[ctx.prefs.speed] || SPEEDS.auto;
+  let pace = readPace();
+  let shownAt = 0;
 
   stage.innerHTML = "";
   const top = el("div", "nr-top");
@@ -153,11 +189,10 @@ function createRunner(ctx) {
   controls.appendChild(pianoWrap);
   const piano = createPiano(pianoWrap, { low: 60, high: 71, onPress: (m) => input(mod(m, 12), "tap") });
   const hint = el("div", "nr-hint");
-  hint.innerHTML =
-    layout === "piano"
-      ? "<kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> white · <kbd>W</kbd><kbd>E</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd> black"
-      : "<kbd>A</kbd>–<kbd>G</kbd> · <kbd>Shift</kbd> = ♯";
+  hint.textContent = keysHint();
   controls.appendChild(hint);
+  const onKeysChanged = () => (hint.textContent = keysHint());
+  window.addEventListener("hears:keys-changed", onKeysChanged);
 
   let sp = spec(run.level);
   let cards = [];
@@ -203,7 +238,13 @@ function createRunner(ctx) {
     lastClef = card.clef;
     counter.textContent = `${ci + 1}/${cards.length}`;
     piano.clear();
-    const ms = card.notes.length > 1 ? Math.round(sp.ms * 1.9) : sp.ms;
+    if (!speed.mult) {
+      ctx.timer.reset(true); // Slow: no clock, take your time
+      return;
+    }
+    shownAt = performance.now();
+    const base = speed.auto ? pace : sp.ms * speed.mult;
+    const ms = Math.round(card.notes.length > 1 ? base * 1.9 : base);
     ctx.timer.start(ms);
     ctx.later(() => my === token && live && miss(), ms);
   }
@@ -229,6 +270,12 @@ function createRunner(ctx) {
 
   function hit() {
     token++;
+    if (speed.auto) {
+      const r = (performance.now() - shownAt) / (cards[ci].notes.length > 1 ? 1.9 : 1);
+      pace = paceAfterHit(pace, r);
+      savePace(pace);
+    }
+    ctx.hit();
     cardEl.classList.remove("in");
     cardEl.classList.add("out");
     fx.burst(cardEl, { count: 10, kind: "good" });
@@ -244,6 +291,10 @@ function createRunner(ctx) {
   function miss() {
     live = false;
     token++;
+    if (speed.auto) {
+      pace = paceAfterMiss(pace);
+      savePace(pace);
+    }
     ctx.timer.reset(false);
     const card = cards[ci];
     cardEl.classList.remove("in", "out");
@@ -284,49 +335,49 @@ function createRunner(ctx) {
     },
     onKey(e) {
       if (e.repeat) return false;
-      if (layout === "piano") {
-        const pc = PIANO_ROW[e.code];
-        return pc === undefined ? false : input(pc, "key");
-      }
-      const k = (e.key || "").toUpperCase();
-      const li = LETTERS.indexOf(k);
-      if (li < 0 || k.length !== 1) return false;
-      return input(mod(LETTER_PC[li] + (e.shiftKey ? 1 : 0), 12), "key");
+      const n = noteFromKey(e);
+      return n ? input(n.pc, "key") : false;
     },
     destroy() {
       live = false;
       token++;
+      window.removeEventListener("hears:keys-changed", onKeysChanged);
     },
   };
 }
 
-function renderSettings(slot, prefs, setPref) {
-  slot.appendChild(el("div", "mk-section-label", "Answer with your keyboard"));
+function segment(slot, title, options, current, onPick) {
+  slot.appendChild(el("div", "mk-section-label", title));
   const seg = el("div", "mk-seg");
   seg.setAttribute("role", "radiogroup");
-  const current = LAYOUTS[prefs.keys] ? prefs.keys : "letters";
-  Object.entries(LAYOUTS).forEach(([id, c]) => {
+  Object.entries(options).forEach(([id, c]) => {
     const b = el("button", "mk-seg-btn" + (id === current ? " active" : ""));
     b.setAttribute("role", "radio");
     b.setAttribute("aria-checked", String(id === current));
-    b.append(el("span", "mk-seg-label", c.label), el("span", "mk-seg-sub mono", c.sub));
+    b.append(el("span", "mk-seg-label", c.label));
+    if (c.sub) b.append(el("span", "mk-seg-sub mono", c.sub));
     b.addEventListener("click", () => {
-      setPref("keys", id);
       seg.querySelectorAll(".mk-seg-btn").forEach((x) => {
         x.classList.toggle("active", x === b);
         x.setAttribute("aria-checked", String(x === b));
       });
+      onPick(id);
     });
     seg.appendChild(b);
   });
   slot.appendChild(seg);
 }
 
+function renderSettings(slot, prefs, setPref) {
+  segment(slot, "Speed", SPEEDS, SPEEDS[prefs.speed] ? prefs.speed : "auto", (id) => setPref("speed", id));
+  renderKeysChoice(slot);
+}
+
 const GAME = {
   id: "note-rush",
   title: "Note Rush",
   storageKey: "smartear_note_rush_v1",
-  defaultPrefs: { keys: "letters" },
+  defaultPrefs: { speed: "auto" },
   renderSettings,
   createRunner,
 };

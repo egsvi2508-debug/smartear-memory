@@ -40,7 +40,7 @@ function chain(): Tone.Volume {
   if (!master) {
     limiter = new Tone.Limiter(-1).toDestination();
     master = new Tone.Volume(masterDb).connect(limiter);
-    fxBus = new Tone.Volume(-6).connect(limiter);
+    fxBus = new Tone.Volume(-6 + masterDb).connect(limiter);
   }
   return master;
 }
@@ -48,6 +48,12 @@ function chain(): Tone.Volume {
 export function setMasterVolume(db: number) {
   masterDb = db;
   if (master) master.volume.value = db;
+  if (fxBus) fxBus.volume.value = -6 + db;
+}
+/** Game sounds (notes + right/wrong chimes), 0..1. */
+export function setGameVolume(v: number) {
+  const x = Math.max(0, Math.min(1, v));
+  setMasterVolume(x <= 0.001 ? -Infinity : 20 * Math.log10(x));
 }
 export function setFeedbackSounds(on: boolean) {
   feedbackOn = on;

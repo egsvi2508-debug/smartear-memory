@@ -239,6 +239,7 @@ function createRunner(ctx) {
     live = false;
     token++;
     const c = cards[ci];
+    ctx.hit();
     buttons.get(s)?.classList.add("good");
     showReveal(c, "good");
     fx.burst(card, { count: 10 });

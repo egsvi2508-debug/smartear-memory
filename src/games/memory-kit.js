@@ -3,6 +3,7 @@
 // stage/controls the shell provides and reports each round through
 // ctx.finishRound().
 
+import { statsStrip, noteRound, bestLine, pushBest } from "../lib/strip";
 import { ensureAudioReady, stopAllSound, playCorrectFx, playWrongFx, Tone } from "./audio.js";
 import * as fx from "./fx.js";
 
@@ -11,7 +12,6 @@ export const mkHooks = { load: null, save: null, onRound: null, onRunEnd: null }
 
 export const LIVES = Infinity;
 const AUTO_NEXT_MS = 850; // after a clean round
-const FAIL_NEXT_MS = 2400; // after a miss: long enough to read the answer
 
 // ---------------------------------------------------------------------------
 // Small shared helpers (also used by the games themselves)
@@ -124,10 +124,10 @@ function savePrefs(key, prefs) {
 }
 
 // ---------------------------------------------------------------------------
-// The shell: opens straight into play. No lives, no score, no modes.
-// A clean round moves up a level; a miss shows the answer and tries the
-// same level again. The level is kept per game, and ‹ › in the top bar
-// changes it.
+// The shell: opens straight into play. A round runs until a miss.
+// A clean level moves up; a miss shows the answer and ends the round, and
+// the next round can start from any level (‹ › in the top bar too). The
+// start level is kept per game.
 // ---------------------------------------------------------------------------
 /**
  * game: {
@@ -200,14 +200,57 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     }
   }
 
-  function startRun(firstLevel) {
+  // "levels": climb a level per clean round. "streak": stay on one level and
+  // count right answers in a row. Either way, one miss ends the round.
+  const MODES = { levels: "Levels", streak: "Streak" };
+  let playMode = "levels";
+  try {
+    if (localStorage.getItem(game.storageKey + "_mode") === "streak") playMode = "streak";
+  } catch {
+    /* ignore */
+  }
+  function setPlayMode(m) {
+    playMode = m;
+    try {
+      localStorage.setItem(game.storageKey + "_mode", m);
+    } catch {
+      /* ignore */
+    }
+  }
+  /** A row of choice buttons (the games' settings use the same look). */
+  function choice(title, options, current, onPick) {
+    const wrap = el("div", "mk-choice");
+    if (title) wrap.appendChild(el("div", "mk-section-label", title));
+    const seg = el("div", "mk-seg");
+    seg.setAttribute("role", "radiogroup");
+    Object.entries(options).forEach(([id, label]) => {
+      const b = el("button", "mk-seg-btn" + (id === current ? " active" : ""));
+      b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", String(id === current));
+      b.append(el("span", "mk-seg-label", label));
+      b.addEventListener("click", () => {
+        seg.querySelectorAll(".mk-seg-btn").forEach((x) => {
+          x.classList.toggle("active", x === b);
+          x.setAttribute("aria-checked", String(x === b));
+        });
+        onPick(id);
+      });
+      seg.appendChild(b);
+    });
+    wrap.appendChild(seg);
+    return wrap;
+  }
+
+  /** intro: show the start pop-up (mode, level, options, Play) instead of starting. */
+  function startRun(firstLevel, intro = false) {
     clearTimers();
     stopRunner();
     stopAllSound();
     unlockAudio();
     root.innerHTML = "";
 
-    const run = { level: firstLevel, lives: Infinity, combo: 0, rounds: 0, lastSuccess: null };
+    const run = { level: firstLevel, startLevel: firstLevel, lives: Infinity, combo: 0, rounds: 0, lastSuccess: null, streak: 0, hitsThisRound: 0 };
+    const streakMode = playMode === "streak";
 
     // ---- DOM ----
     const game$ = el("div", "mk-run");
@@ -225,21 +268,11 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     up.setAttribute("aria-label", "Level up");
     lvl.append(down, levelLabel, up);
     hud.append(backBtn, hudMid, lvl);
-    let gear = null;
-    let settings = null;
-    if (game.renderSettings) {
-      gear = el("button", "mk-icon-btn mk-gear");
-      gear.setAttribute("aria-label", "Settings");
-      gear.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>';
-      hud.appendChild(gear);
-      settings = el("div", "mk-settings mk-drawer");
-      game.renderSettings(settings, prefs, (k, v) => {
-        prefs[k] = v;
-        savePrefs(game.storageKey, prefs);
-        later(() => startRun(run.level), 120);
-      });
-      gear.addEventListener("click", () => settings.classList.toggle("open"));
-    }
+    const gear = el("button", "mk-icon-btn mk-gear");
+    gear.setAttribute("aria-label", "Settings");
+    gear.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>';
+    hud.appendChild(gear);
+    gear.addEventListener("click", () => startRun(run.startLevel, true));
     if (hudExtra) hud.appendChild(hudExtra);
 
     const card = el("div", "mk-card");
@@ -257,7 +290,8 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     const statusLeft = el("div", "mk-status-left");
     const statusText = el("div", "mk-status-text");
     const readout = el("div", "mk-readout");
-    statusLeft.append(statusText, readout);
+    const streakBadge = el("div", "mk-streak mono");
+    statusLeft.append(streakBadge, statusText, readout);
     const pips = el("div", "mk-pips");
     status.append(statusLeft, pips);
 
@@ -273,11 +307,54 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     const nextLabel = el("span", "mk-next-label", "Next");
     nextBtn.append(nextBar, nextLabel);
     resultActions.append(extraActions, nextBtn);
-    result.append(resultTip, legend, resultActions);
+    // Round over: where you got to, and pick any level to start the next round.
+    const over = el("div", "mk-over");
+    const overTitle = el("div", "mk-over-title", "Round over");
+    const overSub = el("div", "mk-over-sub");
+    let overMode = playMode;
+    const overChoice = choice("Mode", MODES, playMode, (m) => {
+      overMode = m;
+      pickLabel.textContent = m === "streak" ? "Level" : "Start from level";
+    });
+    const pickRow = el("div", "mk-over-pick");
+    const pDown = el("button", "mk-lvl-btn", "‹");
+    pDown.setAttribute("aria-label", "Lower start level");
+    const pVal = el("input", "mk-over-lv mono");
+    pVal.type = "number";
+    pVal.min = "1";
+    pVal.max = "99";
+    pVal.inputMode = "numeric";
+    pVal.setAttribute("aria-label", "Start level");
+    const pUp = el("button", "mk-lvl-btn", "›");
+    pUp.setAttribute("aria-label", "Higher start level");
+    const pickLabel = el("span", "mk-over-label", streakMode ? "Level" : "Start from level");
+    pickRow.append(pickLabel, pDown, pVal, pUp);
+    const playBtn = el("button", "mk-btn primary mk-over-play", "Play");
+    // The game's own options (speed, what to show…), saved as you pick.
+    const opts = el("div", "mk-settings mk-over-opts");
+    if (game.renderSettings) {
+      game.renderSettings(opts, prefs, (k, v) => {
+        prefs[k] = v;
+        savePrefs(game.storageKey, prefs);
+      });
+    }
+    over.append(overTitle, overSub, overChoice, pickRow, opts, playBtn);
+    const pickLevel = () => Math.max(1, Math.min(99, Math.round(Number(pVal.value) || 1)));
+    pDown.addEventListener("click", () => (pVal.value = String(Math.max(1, pickLevel() - 1))));
+    pUp.addEventListener("click", () => (pVal.value = String(Math.min(99, pickLevel() + 1))));
+    const playAgain = () => {
+      const l = pickLevel();
+      saveLevel(l);
+      setPlayMode(overMode);
+      startRun(l);
+    };
+    playBtn.addEventListener("click", playAgain);
+    pVal.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") playAgain();
+    });
+    result.append(resultTip, legend, over, resultActions);
 
-    game$.append(hud);
-    if (settings) game$.append(settings);
-    game$.append(card, status, controls, result);
+    game$.append(hud, card, status, controls, result, statsStrip(game.id));
     if (rules && rules.length) {
       const box = el("section", "mk-rules");
       box.appendChild(el("div", "mk-rules-h", "Rules"));
@@ -309,6 +386,13 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     function updateHud() {
       levelLabel.textContent = `Lv ${run.level}`;
       down.disabled = run.level <= 1;
+      streakBadge.textContent = `Streak ${run.streak}`;
+      streakBadge.classList.toggle("on", streakMode);
+    }
+    function bumpStreak() {
+      run.streak++;
+      updateHud();
+      if (streakMode) fx.kick(streakBadge, "pop", 400);
     }
 
     const ctx = {
@@ -337,6 +421,11 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
         status.classList.toggle("reading", !!text);
       },
       hudTag() {},
+      /** One right answer inside a round (a card, a note): counts toward the streak. */
+      hit() {
+        run.hitsThisRound++;
+        bumpStreak();
+      },
       /** states: array of "" | "on" | "good" | "bad" | "missed" | "over" | "cur" */
       pips(states) {
         pips.innerHTML = "";
@@ -366,11 +455,14 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
           timerFill.style.transform = full ? "scaleX(1)" : "scaleX(0)";
         },
       },
-      /** A round is over: a clean one moves up, a miss tries again. */
+      /** A level is done: a clean one moves up, a miss ends the round. */
       finishRound(o) {
         setPhase("reveal");
         run.rounds++;
         run.lastSuccess = !!o.success;
+        if (o.success && !run.hitsThisRound) bumpStreak();
+        run.hitsThisRound = 0;
+        noteRound(game.id, { cleared: o.success && !streakMode ? run.level : 0, streak: run.streak, round: !o.success });
         playFx(!!o.success);
         card.classList.remove("good", "bad");
         void card.offsetWidth;
@@ -379,11 +471,11 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
           if (o.success) {
             fx.flash(card, "good");
             fx.burst(card, { kind: "good", count: 22, glyphs: true });
-            fx.stamp(card, "Nice", "", "good");
+            fx.stamp(card, streakMode ? `Streak ${run.streak}` : "Nice", "", "good");
             fx.kick(card, "pop", 340);
           } else {
             fx.flash(card, "bad");
-            fx.stamp(card, "Missed", "", "bad", 800);
+            fx.stamp(card, "Round over", streakMode ? `Streak ${run.streak}` : `Lv ${run.level}`, "bad", 1000);
             fx.kick(card, "shake", 450);
           }
         } catch (e) {
@@ -407,11 +499,20 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
           extraActions.appendChild(b);
         });
         statusText.textContent = "";
-        nextLabel.textContent = o.success ? "Next" : "Try again";
+        nextLabel.textContent = "Next";
         nextBtn.classList.remove("auto");
         nextBar.style.animation = "none";
-        if (o.autoNext !== false) {
-          const ms = o.success ? AUTO_NEXT_MS : FAIL_NEXT_MS;
+        result.classList.toggle("over", !o.success);
+        if (!o.success) {
+          overSub.textContent = streakMode
+            ? `Streak ${run.streak} at level ${run.level}`
+            : run.level > run.startLevel
+              ? `You reached level ${run.level} (started at ${run.startLevel})`
+              : `You reached level ${run.level}`;
+          pVal.value = String(run.startLevel);
+        }
+        if (o.success && o.autoNext !== false) {
+          const ms = AUTO_NEXT_MS;
           void nextBar.offsetWidth;
           nextBar.style.animation = "";
           nextBar.style.animationDuration = `${ms}ms`;
@@ -430,20 +531,18 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
       unlockAudio();
       card.classList.remove("good", "bad");
       status.classList.remove("reading");
-      if (run.lastSuccess) {
-        run.level++;
-        saveLevel(run.level);
-      }
+      if (!run.lastSuccess) return playAgain();
+      if (!streakMode) run.level++;
       updateHud();
-      if (run.lastSuccess) fx.kick(levelLabel, "pop", 650);
+      if (!streakMode) fx.kick(levelLabel, "pop", 650);
       setPhase("ready");
-      runner.startRound({ retry: !run.lastSuccess });
+      runner.startRound({ retry: false });
     }
 
     nextBtn.addEventListener("click", advance);
     backBtn.addEventListener("click", exit);
     const jump = (d) => {
-      const l = Math.max(1, run.level + d);
+      const l = Math.max(1, Math.min(99, run.level + d));
       if (l === run.level) return;
       saveLevel(l);
       startRun(l);
@@ -454,8 +553,12 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     runApi = {
       onKey(e) {
         if (e.key === "Escape") return exit(), true;
+        if (phase === "intro") {
+          if (e.key === "Enter" || e.key === " ") return playAgain(), true;
+          return false;
+        }
         if (phase === "reveal") {
-          if (e.key === "Enter" || e.key === " ") return advance(), true;
+          if (e.key === "Enter" || e.key === " ") return (run.lastSuccess ? advance() : playAgain()), true;
           const hit = resultKeys.find(([k]) => k === e.key.toLowerCase());
           if (hit) return hit[1](), true;
           return false;
@@ -467,6 +570,14 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     updateHud();
     setPhase("ready");
     runner = game.createRunner(ctx);
+    if (intro) {
+      overTitle.textContent = game.title;
+      overSub.textContent = bestLine(game.id);
+      pVal.value = String(run.startLevel);
+      result.classList.add("over", "intro");
+      setPhase("intro");
+      return;
+    }
     runner.startRound({ retry: false });
   }
 
@@ -485,6 +596,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     document.body.classList.remove("mode-train");
   }
 
-  startRun(savedLevel());
+  startRun(savedLevel(), true);
+  pushBest(game.id, 2500); // make sure the board has your bests
   return { destroy: teardown };
 }
