@@ -17,6 +17,7 @@ import "./styles/bench.css";
 import { loadVexFlow } from "./lib/vexflow";
 import { mkHooks, todayKey } from "./games/memory-kit.js";
 import { TIERS, UNRANKED, badge, tierOf, tierIndex, nextTier, tierProgress } from "./rank";
+import { submitGame, submitOverall, topGame, topOverall, myPlace, myUid, type Entry, type OverallEntry } from "./board";
 import { preloadPiano, stopAllSound, playRewardFx } from "./lib/engine";
 import { getNoteSystem, setNoteSystem } from "./lib/prefs";
 import type { NoteSystem } from "./lib/theory";
@@ -106,6 +107,45 @@ function setPlayerName(v: string) {
   }
 }
 
+// ---------------------------------------------------------------- global leaderboard sync
+function ensureName(): string {
+  let n = playerName().trim();
+  if (!n) {
+    n = `Player${Math.floor(1000 + Math.random() * 9000)}`;
+    setPlayerName(n);
+  }
+  return n;
+}
+/** The better of a game's Classic and Daily bests. */
+function bestEntry(p: Progress | null): { level: number; score: number; mode: string } | null {
+  if (!p) return null;
+  let best: { level: number; score: number; mode: string; r: number } | null = null;
+  for (const m of RANKED) {
+    const b = p.best[m];
+    if (!b || !b.level) continue;
+    const r = b.level * 1e7 + (b.score || 0);
+    if (!best || r > best.r) best = { level: b.level, score: b.score || 0, mode: m, r };
+  }
+  return best;
+}
+async function syncGame(g: Game): Promise<boolean> {
+  const e = bestEntry(progressOf(g));
+  return e ? submitGame(g.id, { name: ensureName(), ...e }) : false;
+}
+async function syncOverall(): Promise<boolean> {
+  const o = overall();
+  return o.played ? submitOverall(ensureName(), o.rating, o.played) : false;
+}
+let syncTimer = 0;
+/** Push every local best (and the overall rating) to the boards, shortly. */
+function syncAllSoon(delay = 800) {
+  clearTimeout(syncTimer);
+  syncTimer = window.setTimeout(async () => {
+    for (const g of GAMES) await syncGame(g);
+    await syncOverall();
+  }, delay);
+}
+
 // ---------------------------------------------------------------- shared bits
 const app = document.getElementById("app")!;
 let handle: Handle;
@@ -151,7 +191,7 @@ function page(active: string): HTMLElement {
   const logo = link("#/", "logo", "");
   logo.innerHTML = `<span class="logo-mark">${svg('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>')}</span><span>Musical Memory</span>`;
   const links = el("nav", "nav-links");
-  links.append(link("#/", active === "home" ? "on" : "", "Games"), link("#/me", active === "me" ? "on" : "", "Ranks"));
+  links.append(link("#/", active === "home" ? "on" : "", "Games"), link("#/top", active === "top" ? "on" : "", "Leaderboard"), link("#/me", active === "me" ? "on" : "", "Ranks"));
   const o = overall();
   const chip = link("#/me", "nav-rank", "");
   chip.innerHTML = `${badge(o.tier, 26)}<span>${fmt(o.rating)}</span>`;
@@ -220,6 +260,15 @@ function showHome() {
   inner.append(link("#/visual-memory", "band-btn", o.played ? "Keep climbing" : "Start ranked"));
   hero.append(inner);
   main.append(hero, tiles());
+  const prevWrap = el("section", "panels one");
+  const prev = el("div", "panel");
+  prev.append(el("h2", "", "Top players"));
+  const prevList = el("div", "board", "Loading…");
+  prev.append(prevList, link("#/top", "panel-link", "Full leaderboard →"));
+  prevWrap.append(prev);
+  main.append(prevWrap);
+  fillOverall(prevList, 5);
+  syncAllSoon(1500);
 
   const ladder = el("section", "panels one");
   const lp = el("div", "panel");
@@ -241,7 +290,10 @@ function showHome() {
   input.maxLength = 20;
   input.placeholder = "Player";
   input.value = playerName();
-  input.addEventListener("change", () => setPlayerName(input.value));
+  input.addEventListener("change", () => {
+    setPlayerName(input.value);
+    syncAllSoon(200);
+  });
   nameRow.append(input);
   const notes = el("div", "setting-row");
   notes.append(el("span", "", "Note names"));
@@ -257,7 +309,7 @@ function showHome() {
   });
   seg.append(...btns);
   notes.append(seg);
-  settings.append(nameRow, notes, el("p", "fine", "Your ranks and scores are saved on this device."));
+  settings.append(nameRow, notes, el("p", "fine", "Your scores are saved on this device, and your best runs go on the public leaderboard under this name."));
   ladder.append(settings);
   main.append(ladder);
   document.title = "Musical Memory · Ranked";
@@ -330,8 +382,15 @@ async function showGame(game: Game, challenge: Challenge | null) {
   const ol = el("ol", "about-steps");
   game.about.forEach((t) => ol.append(el("li", "", t)));
   about.append(ol, el("p", "fine", "Play: ranked, 3 lives. Daily: ranked, the same puzzle for everyone today. Practice: no lives, not ranked."));
-  panels.append(stats, about);
+  const topPanel = el("div", "panel wide");
+  const topHead = el("div", "panel-head");
+  topHead.append(el("h2", "", "Top players"), link(`#/top?g=${game.id}`, "panel-link", "Full board →"));
+  const topList = el("div", "board", "Loading…");
+  topPanel.append(topHead, topList);
+  panels.append(stats, about, topPanel);
   main.append(band, panels);
+  const drawTop = () => fillGame(topList, game, 10);
+  drawTop();
 
   const drawStats = () => renderStats(stats, game);
   drawStats();
@@ -348,7 +407,15 @@ async function showGame(game: Game, challenge: Challenge | null) {
       chip.innerHTML = `${badge(o.tier, 26)}<span>${fmt(o.rating)}</span>`;
     }
     if (r.mode === "training") return;
-    showRunEnd(game, r, prev, challenge && challenge.mode === r.mode ? challenge : null);
+    const ov = showRunEnd(game, r, prev, challenge && challenge.mode === r.mode ? challenge : null);
+    const globalEl = ov.querySelector(".ov-global") as HTMLElement;
+    (async () => {
+      const ok = await syncGame(game);
+      await syncOverall();
+      const place = ok ? await myPlace(game.id) : null;
+      if (globalEl) globalEl.textContent = place && place.place ? `Global rank #${place.place} of ${place.total} on ${game.name}` : ok ? "" : "Leaderboard offline: your score is saved on this device.";
+      drawTop();
+    })();
   };
 
   function startMode(mode: "classic" | "daily") {
@@ -367,7 +434,7 @@ async function showGame(game: Game, challenge: Challenge | null) {
 }
 
 /** The big moment after a ranked run: rank up, new best, or a challenge result. */
-function showRunEnd(g: Game, r: { score: number; level: number; mode: string; counted: boolean }, prev: Progress | null, ch: Challenge | null) {
+function showRunEnd(g: Game, r: { score: number; level: number; mode: string; counted: boolean }, prev: Progress | null, ch: Challenge | null): HTMLElement {
   const oldLevel = rankedLevel(prev);
   const newLevel = Math.max(oldLevel, r.counted ? r.level : 0);
   const rankUp = r.counted && tierIndex(newLevel) > tierIndex(oldLevel);
@@ -410,7 +477,7 @@ function showRunEnd(g: Game, r: { score: number; level: number; mode: string; co
   } else {
     nums.append(num(fmt(r.score), "Score"), num(String(r.level), "Level"));
   }
-  card.append(nums);
+  card.append(nums, el("div", "ov-global", r.counted ? "Posting to the leaderboard…" : ""));
   if (!r.counted) card.append(el("p", "ov-note", "You already played today's Daily, so this run isn't ranked."));
   else {
     const n = nextTier(newLevel);
@@ -424,6 +491,7 @@ function showRunEnd(g: Game, r: { score: number; level: number; mode: string; co
   input.placeholder = "Player";
   input.value = playerName();
   input.addEventListener("input", () => setPlayerName(input.value));
+  input.addEventListener("change", () => syncAllSoon(200));
   nameRow.append(input);
   const note = el("div", "ov-share-note");
   const actions = el("div", "ov-actions");
@@ -443,6 +511,7 @@ function showRunEnd(g: Game, r: { score: number; level: number; mode: string; co
     }
     burst(ov, t.color);
   }
+  return ov;
 }
 
 /** A quick confetti burst behind the card. */
@@ -560,6 +629,7 @@ function route() {
   const raw = location.hash.replace(/^#\/?/, "");
   const [id, q = ""] = raw.split("?");
   if (id === "me") return showDashboard();
+  if (id === "top") return showLeaderboard(new URLSearchParams(q).get("g"));
   const game = GAMES.find((g) => g.id === id);
   if (game) showGame(game, parseChallenge(q));
   else showHome();
@@ -568,3 +638,73 @@ function route() {
 window.addEventListener("hashchange", route);
 preloadPiano();
 route();
+
+// ---------------------------------------------------------------- leaderboards
+function boardRow(pos: number, name: string, tierLevel: number, right: string, me: boolean): HTMLElement {
+  const row = el("div", "board-row" + (me ? " me" : "") + (pos <= 3 ? ` top${pos}` : ""));
+  const t = tierOf(tierLevel);
+  row.append(el("span", "b-pos", String(pos)));
+  const b = el("span", "b-badge");
+  b.innerHTML = badge(t, 26);
+  row.append(b);
+  const nm = el("span", "b-name", name);
+  if (me) nm.append(el("span", "b-you", "you"));
+  row.append(nm, el("span", "b-val", right));
+  return row;
+}
+function emptyBoard(box: HTMLElement, rows: unknown[] | null) {
+  box.innerHTML = "";
+  if (rows === null) box.append(el("p", "empty", "The leaderboard can't be reached right now. Your scores are safe on this device."));
+  else if (!rows.length) box.append(el("p", "empty", "No one on this board yet. Play a ranked run and take #1!"));
+  return rows === null || !rows.length;
+}
+async function fillGame(box: HTMLElement, g: Game, n: number) {
+  const [rows, me] = await Promise.all([topGame(g.id, n), myUid()]);
+  if (!box.isConnected || emptyBoard(box, rows)) return;
+  (rows as Entry[]).forEach((e, i) => box.append(boardRow(i + 1, e.name, e.level, `Lv ${e.level} · ${fmt(e.score)}`, e.uid === me)));
+}
+async function fillOverall(box: HTMLElement, n: number) {
+  const [rows, me] = await Promise.all([topOverall(n), myUid()]);
+  if (!box.isConnected || emptyBoard(box, rows)) return;
+  (rows as OverallEntry[]).forEach((e, i) => box.append(boardRow(i + 1, e.name, Math.floor(e.rating / 100 / GAMES.length), `${fmt(e.rating)} · ${e.games}/6`, e.uid === me)));
+}
+
+function showLeaderboard(gameId: string | null) {
+  token++;
+  const main = page("top");
+  const game = GAMES.find((g) => g.id === gameId) || null;
+  const band = el("section", "band small");
+  const inner = el("div", "band-inner");
+  inner.append(el("div", "eyebrow", "Worldwide"), el("h1", "hero-title", "Leaderboard"));
+  const place = el("p", "hero-sub", "Finding your place…");
+  inner.append(place);
+  band.append(inner);
+
+  const tabs = el("nav", "board-tabs");
+  const tab = (label: string, id: string | null) => {
+    const a = link(id ? `#/top?g=${id}` : "#/top", "board-tab" + (id === (game?.id ?? null) ? " on" : ""), label);
+    tabs.append(a);
+  };
+  tab("Overall", null);
+  GAMES.forEach((g) => tab(g.name, g.id));
+
+  const panels = el("section", "panels one");
+  const panel = el("div", "panel");
+  panel.append(tabs);
+  const head = el("div", "board-head");
+  head.append(el("span", "", "#"), el("span", "", ""), el("span", "", "Player"), el("span", "", game ? "Level · score" : "Rating · games"));
+  const list = el("div", "board", "Loading…");
+  panel.append(head, list, el("p", "fine", game ? "Each player's best Classic or Daily run. Ranked by level, then score." : "Rating = 100 points for every ranked level across all six games."));
+  panels.append(panel);
+  main.append(band, panels);
+  document.title = "Leaderboard · Musical Memory";
+
+  syncAllSoon(0);
+  (game ? fillGame(list, game, 50) : fillOverall(list, 50)).then(async () => {
+    const pl = await myPlace(game ? game.id : null);
+    if (!place.isConnected) return;
+    if (!pl) place.textContent = "Leaderboard offline right now.";
+    else if (!pl.place) place.textContent = `${pl.total} player${pl.total === 1 ? "" : "s"} ranked. Play a ranked run to join them.`;
+    else place.textContent = `You're #${pl.place} of ${pl.total} as ${ensureName()}.`;
+  });
+}
