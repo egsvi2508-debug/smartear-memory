@@ -136,7 +136,7 @@ function savePrefs(key, prefs) {
  *   createRunner(ctx) → { startRound({ retry }), onKey(e) → bool, destroy() }
  * }
  */
-export function openMemoryGame(container, game, { onExit } = {}) {
+export function openMemoryGame(container, game, { onExit, rules } = {}) {
   document.body.classList.add("mode-train");
   container.innerHTML = "";
   const root = el("div", `trainer mk mk-${game.id}`);
@@ -277,6 +277,14 @@ export function openMemoryGame(container, game, { onExit } = {}) {
     game$.append(hud);
     if (settings) game$.append(settings);
     game$.append(card, status, controls, result);
+    if (rules && rules.length) {
+      const box = el("section", "mk-rules");
+      box.appendChild(el("div", "mk-rules-h", "Rules"));
+      const ul = el("ul");
+      rules.forEach((r) => ul.appendChild(el("li", "", r)));
+      box.appendChild(ul);
+      game$.append(box);
+    }
     root.appendChild(game$);
 
     let phase = "ready";

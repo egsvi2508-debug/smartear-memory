@@ -268,3 +268,11 @@ body { min-height: 100dvh; }
 /* Interval Rush: room for the staff and the name */
 .mk-root.play .ir-card { min-height: 236px; }
 .mk-root.play .ir-staff { width: min(280px, 92%); }
+
+/* tiny rules under each game */
+.mk-root.play .mk-rules { margin-top: 10px; padding: 12px 14px; border-radius: 14px; border: 1px dashed var(--a-line); color: var(--a-dim); font-size: 13.5px; line-height: 1.45; }
+.mk-root.play .mk-rules-h { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--a-cyan); margin-bottom: 4px; }
+.mk-root.play .mk-rules ul { margin: 0; padding-left: 18px; }
+.mk-root.play .mk-rules li::marker { color: var(--a-yellow); }
+/* the rules box replaces the games' own grey hint lines */
+.mk-root.play .mk-hint, .mk-root.play .nr-hint { display: none !important; }
