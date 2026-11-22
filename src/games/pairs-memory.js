@@ -375,7 +375,7 @@ const GAME = {
   id: "pairs-memory",
   title: "Sound Pairs",
   memoryType: "Remember where each sound lives",
-  tagline: "Every card hides a sound, and every sound is on two cards. Find all the pairs before you run out of misses.",
+  tagline: "Every sound hides on two cards. Find the pairs.",
   storageKey: "smartear_pairs_memory_v1",
   docId: "pairs-memory-progress",
   unitLabel: "Pairs found",

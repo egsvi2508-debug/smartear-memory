@@ -507,7 +507,7 @@ const GAME = {
   id: "visual-memory",
   title: "Visual Memory",
   memoryType: "Remember what you see",
-  tagline: "A snapshot of notes flashes on the staff, then vanishes. Rebuild it — every note back in its place.",
+  tagline: "Notes flash on the staff. Put them back where they were.",
   storageKey: "smartear_visual_memory_v2",
   docId: "visual-memory-progress",
   legacyModes: { chords: "classic", scatter: "classic" },

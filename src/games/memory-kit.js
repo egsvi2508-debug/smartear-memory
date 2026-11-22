@@ -62,8 +62,8 @@ export const SUITE = [
 
 const MODE_META = {
   classic: { name: "Classic", tag: "Classic" },
-  daily: { name: "Daily Challenge", tag: "Today" },
-  training: { name: "Training", tag: "No lives" },
+  daily: { name: "Daily", tag: "Today" },
+  training: { name: "Practice", tag: "No lives" },
 };
 
 const PRAISE = ["Perfect", "Sharp!", "Flawless", "Locked in", "Clean", "Spot on"];
@@ -359,45 +359,27 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     back.setAttribute("aria-label", "Back to all games");
     back.title = "Back (Esc)";
     back.addEventListener("click", exit);
-    const titles = el("div", "mk-hub-titles");
-    titles.append(el("div", "mk-eyebrow", "Memory"), el("h1", "mk-hub-title", game.title));
-    head.append(back, titles);
+    head.append(back, el("h1", "mk-hub-title", game.title));
     hub.appendChild(head);
 
-    if (openModule) {
-      const tabs = el("nav", "mk-suite");
-      tabs.setAttribute("aria-label", "Memory games");
-      SUITE.forEach((s) => {
-        const t = el("button", "mk-suite-tab" + (s.id === game.id ? " active" : ""));
-        t.append(el("span", "mk-suite-type", s.type), el("span", "mk-suite-name", s.label));
-        if (s.id === game.id) t.setAttribute("aria-current", "page");
-        else
-          t.addEventListener("click", () => {
-            teardown();
-            openModule(s.id);
-          });
-        tabs.appendChild(t);
-      });
-      hub.appendChild(tabs);
-    }
-
-    // One calm card: what this trains, your record, one big Play.
+    // One calm card: what it is, your record, one big Play.
     const home = el("section", "mk-home");
-    home.appendChild(el("div", "mk-home-type", game.memoryType || ""));
     home.appendChild(el("p", "mk-home-sub", game.tagline));
 
     const bestScore = Math.max(...MODE_IDS.map((m) => progress.best[m].score));
     const bestLevel = Math.max(...MODE_IDS.map((m) => progress.best[m].level));
     const streakAlive = progress.lastDay === todayKey() || progress.lastDay === yesterdayKey();
     const streak = streakAlive ? progress.streakDays : 0;
-    const facts = el("div", "mk-home-facts");
     if (bestScore || bestLevel) {
-      facts.innerHTML =
-        `<span><b class="mono">${fmt(bestScore)}</b> best</span>` +
-        `<span><b class="mono">${bestLevel}</b> top level</span>` +
-        `<span><b class="mono">${streak}</b> day streak${streak ? " 🔥" : ""}</span>`;
-    } else facts.innerHTML = "<span>Your first run starts here.</span>";
-    home.appendChild(facts);
+      const facts = el("div", "mk-home-facts");
+      const fact = (v, l) => {
+        const f = el("div", "mk-fact");
+        f.append(el("b", "mono", v), el("span", "", l));
+        return f;
+      };
+      facts.append(fact(fmt(bestScore), "Best"), fact(String(bestLevel), "Top level"), fact(String(streak), streak === 1 ? "Day" : "Days"));
+      home.appendChild(facts);
+    }
 
     if (game.renderSettings) {
       const slot = el("div", "mk-settings");
@@ -413,34 +395,35 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     play.setAttribute("aria-label", "Play (Enter)");
     play.addEventListener("click", () => startRun("classic"));
     home.appendChild(play);
-    home.appendChild(el("div", "mk-home-note", game.modes.classic.blurb));
 
     const more = el("div", "mk-more");
     const today = todayKey();
     const dailyDone = progress.daily && progress.daily.date === today;
     const daily = el("button", "mk-more-btn" + (dailyDone ? " done" : ""));
-    daily.innerHTML = `<span class="mk-more-name">${dailyDone ? "✓ " : ""}Daily challenge</span><span class="mk-more-sub">${dailyDone ? `Today ${fmt(progress.daily.score)} · practise again` : game.modes.daily.blurb}</span>`;
+    daily.innerHTML = `<span class="mk-more-name">${dailyDone ? "✓ " : ""}Daily</span><span class="mk-more-sub">${dailyDone ? `Today: ${fmt(progress.daily.score)}` : "Same puzzle for everyone"}</span>`;
     daily.addEventListener("click", () => startRun("daily"));
     const training = el("button", "mk-more-btn");
-    training.innerHTML = `<span class="mk-more-name">Training</span><span class="mk-more-sub">${game.modes.training.blurb}</span>`;
+    training.innerHTML = `<span class="mk-more-name">Practice</span><span class="mk-more-sub">No lives, no pressure</span>`;
     training.addEventListener("click", () => startRun("training"));
     more.append(daily, training);
     home.appendChild(more);
     hub.appendChild(home);
 
-    const how = el("ol", "mk-how");
+    const how = el("details", "mk-how-box");
+    how.appendChild(el("summary", "", "How to play"));
+    const steps = el("ol", "mk-how");
     game.howTo.forEach(([t, d]) => {
       const li = el("li", "mk-how-step");
-      li.append(el("b", "", t), document.createTextNode(" — " + d));
-      how.appendChild(li);
+      li.append(el("b", "", t), document.createTextNode(" " + d));
+      steps.appendChild(li);
     });
-    hub.appendChild(how);
-
+    how.appendChild(steps);
     if (game.keysHint) {
       const keys = el("div", "mk-keys-hint");
       keys.innerHTML = `${game.keysHint} · <kbd>Enter</kbd> play · <kbd>Esc</kbd> back`;
-      hub.appendChild(keys);
+      how.appendChild(keys);
     }
+    hub.appendChild(how);
 
     root.appendChild(hub);
 
@@ -495,7 +478,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     quitBtn.setAttribute("aria-label", "End run");
     quitBtn.title = "End run (Esc)";
     const hudMid = el("div", "mk-hud-mid");
-    const modeLabel = el("div", "mk-hud-mode", `${game.title} · ${MODE_META[modeId].name}${modeId === "daily" && !counted ? " (practice)" : ""}`);
+    const modeLabel = el("div", "mk-hud-mode", `${MODE_META[modeId].name}${modeId === "daily" && !counted ? " · practice" : ""}`);
     const levelLabel = el("div", "mk-hud-level", "Level 1");
     hudMid.append(modeLabel, levelLabel);
     const livesEl = el("div", "mk-lives");
@@ -899,7 +882,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
     const again = el("button", "mk-btn primary lg", "Play again");
     again.appendChild(el("kbd", "mk-kbd-hint", "⏎"));
     again.addEventListener("click", () => startRun(run.mode));
-    const hubBtn = el("button", "mk-btn ghost", "Menu");
+    const hubBtn = el("button", "mk-btn ghost", "Back");
     hubBtn.addEventListener("click", showHub);
     actions.append(hubBtn, again);
     card.appendChild(actions);

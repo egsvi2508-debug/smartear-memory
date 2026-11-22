@@ -319,7 +319,7 @@ const GAME = {
   id: "hold-memory",
   title: "Pitch Hold",
   memoryType: "Keep one tone in mind",
-  tagline: "One tone plays: keep it in mind (without singing it!). A stream of other notes tries to knock it out of your head. Then find your tone again on the strip.",
+  tagline: "Keep one note in your head through a stream of others, then find it.",
   storageKey: "smartear_hold_memory_v1",
   docId: "hold-memory-progress",
   unitLabel: "Tones kept",

@@ -350,7 +350,7 @@ const GAME = {
   id: "sequence-memory",
   title: "Sequence Memory",
   memoryType: "Remember the order",
-  tagline: "A melody plays. Play it back on the piano. Get it right and the same melody comes back one note longer.",
+  tagline: "Listen to a melody and play it back. It grows one note each round.",
   storageKey: "smartear_sequence_memory_v1",
   docId: "sequence-memory-progress",
   unitLabel: "Notes played back",

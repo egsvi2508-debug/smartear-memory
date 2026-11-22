@@ -11,7 +11,7 @@ import "./styles/base.css";
 import "./styles/components.css";
 import "./styles/legacy.css";
 import "./games/memory.css";
-import "./styles/home.css";
+import "./styles/simple.css";
 
 import { loadVexFlow } from "./lib/vexflow";
 import { preloadPiano, stopAllSound } from "./lib/engine";
@@ -24,19 +24,40 @@ type Opener = (c: HTMLElement, o: { onExit: () => void; openModule: (id: string)
 interface Game {
   id: string;
   name: string;
-  type: string;
-  blurb: string;
+  line: string;
+  tint: string;
+  icon: string;
+  storageKey: string;
   load: () => Promise<{ open: Opener }>;
 }
 
+const svg = (body: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
 const GAMES: Game[] = [
-  { id: "visual-memory", name: "Visual Memory", type: "See", blurb: "Notes flash on a staff and vanish: rebuild them, every note back in place.", load: () => import("./games/visual-memory.js") },
-  { id: "sequence-memory", name: "Sequence Memory", type: "Order", blurb: "A melody grows one note a round: play it back on the piano.", load: () => import("./games/sequence-memory.js") },
-  { id: "pairs-memory", name: "Sound Pairs", type: "Match", blurb: "Cards hide sounds, each on two cards: find the pairs.", load: () => import("./games/pairs-memory.js") },
-  { id: "hold-memory", name: "Pitch Hold", type: "Hold", blurb: "Keep one tone in mind through a stream of other notes, then find it again.", load: () => import("./games/hold-memory.js") },
-  { id: "memory", name: "Comparison", type: "Spot", blurb: "A melody plays twice in the same key: same, or which note changed?", load: () => import("./games/memory.js") },
-  { id: "relative-memory", name: "Relative Memory", type: "Shift", blurb: "A melody, then the same tune in a new key: same, or which note changed?", load: () => import("./games/memory.js").then((m) => ({ open: m.openRelative as Opener })) },
+  { id: "visual-memory", name: "Visual", line: "Remember notes on the staff", tint: "#ffb547", storageKey: "smartear_visual_memory_v2",
+    icon: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), load: () => import("./games/visual-memory.js") },
+  { id: "sequence-memory", name: "Sequence", line: "Play back a growing melody", tint: "#f39a6b", storageKey: "smartear_sequence_memory_v1",
+    icon: svg('<path d="M4 18V14M10 18V10M16 18V6M22 18V3"/>'), load: () => import("./games/sequence-memory.js") },
+  { id: "pairs-memory", name: "Pairs", line: "Find matching sounds", tint: "#8fc4a0", storageKey: "smartear_pairs_memory_v1",
+    icon: svg('<rect x="3" y="5" width="8" height="14" rx="2"/><rect x="13" y="5" width="8" height="14" rx="2"/>'), load: () => import("./games/pairs-memory.js") },
+  { id: "hold-memory", name: "Pitch Hold", line: "Hold one note in your head", tint: "#9fb8e6", storageKey: "smartear_hold_memory_v1",
+    icon: svg('<path d="M12 3v10"/><circle cx="12" cy="17" r="4"/>'), load: () => import("./games/hold-memory.js") },
+  { id: "memory", name: "Compare", line: "Spot the note that changed", tint: "#e3a9c9", storageKey: "smartear_comparison_memory_v1",
+    icon: svg('<path d="M3 9h18M3 15h18"/><circle cx="15" cy="9" r="2" fill="currentColor"/>'), load: () => import("./games/memory.js") },
+  { id: "relative-memory", name: "Relative", line: "Same tune, new key", tint: "#c7b4f0", storageKey: "smartear_relative_memory_v1",
+    icon: svg('<path d="M4 17l6-6 4 4 6-7"/><path d="M15 8h5v5"/>'), load: () => import("./games/memory.js").then((m) => ({ open: m.openRelative as Opener })) },
 ];
+
+/** Highest level reached in any mode (read from the games' saved progress). */
+function topLevel(key: string): number {
+  try {
+    const p = JSON.parse(localStorage.getItem(key) || "null");
+    if (!p || !p.best) return 0;
+    return Math.max(0, ...Object.values(p.best as Record<string, { level?: number }>).map((b) => Number(b.level) || 0));
+  } catch {
+    return 0;
+  }
+}
 
 const app = document.getElementById("app")!;
 let handle: Handle;
@@ -64,38 +85,51 @@ function showHome() {
   closeGame();
   app.innerHTML = "";
   const page = el("main", "home");
-  const head = el("header", "home-head");
-  head.append(el("div", "home-eyebrow", "SmartEar"), el("h1", "home-title", "Memory"));
-  head.append(el("p", "home-sub", "Six games, six kinds of musical memory. Pick one and play."));
-  page.append(head);
+  page.append(el("h1", "home-title", "Memory"), el("p", "home-sub", "Train your musical memory."));
 
-  const grid = el("div", "home-grid");
-  GAMES.forEach((g, i) => {
-    const a = el("a", "home-card");
+  const list = el("ul", "home-list");
+  GAMES.forEach((g) => {
+    const li = el("li");
+    const a = el("a", "home-row");
     a.href = `#/${g.id}`;
-    const top = el("div", "home-card-top");
-    top.append(el("span", "home-card-num", String(i + 1).padStart(2, "0")), el("span", "home-card-type", g.type));
-    a.append(top, el("h2", "home-card-name", g.name), el("p", "home-card-blurb", g.blurb));
-    grid.append(a);
+    const icon = el("span", "home-icon");
+    icon.style.setProperty("--tint", g.tint);
+    icon.innerHTML = g.icon;
+    const text = el("span", "home-text");
+    text.append(el("span", "home-name", g.name), el("span", "home-line", g.line));
+    a.append(icon, text);
+    const lv = topLevel(g.storageKey);
+    if (lv) {
+      const best = el("span", "home-best");
+      best.append(el("b", undefined, String(lv)), document.createTextNode("level"));
+      a.append(best);
+    } else a.append(el("span", "home-chev", "›"));
+    li.append(a);
+    list.append(li);
   });
-  page.append(grid);
+  page.append(list);
 
   const foot = el("footer", "home-foot");
-  const label = el("label", "home-pref");
-  label.append(el("span", undefined, "Note names"));
-  const sel = el("select");
-  ([["letter", "C D E"], ["solfege", "Do Ré Mi"], ["german", "C D E H (German)"]] as [NoteSystem, string][]).forEach(([v, t]) => {
-    const o = el("option", undefined, t);
-    o.value = v;
-    sel.append(o);
+  foot.append(el("span", "home-foot-label", "Note names"));
+  const seg = el("div", "seg");
+  seg.setAttribute("role", "group");
+  seg.setAttribute("aria-label", "Note names");
+  const opts: [NoteSystem, string][] = [["letter", "C D E"], ["solfege", "Do Ré Mi"], ["german", "C D H"]];
+  const btns = opts.map(([v, t]) => {
+    const b = el("button", undefined, t);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(getNoteSystem() === v));
+    b.addEventListener("click", () => {
+      setNoteSystem(v);
+      btns.forEach((x, i) => x.setAttribute("aria-pressed", String(opts[i][0] === v)));
+    });
+    return b;
   });
-  sel.value = getNoteSystem();
-  sel.addEventListener("change", () => setNoteSystem(sel.value as NoteSystem));
-  label.append(sel);
-  foot.append(label, el("p", "home-note", "Progress is saved in this browser."));
+  seg.append(...btns);
+  foot.append(seg, el("p", "home-note", "Your progress is saved on this device."));
   page.append(foot);
   app.append(page);
-  document.title = "SmartEar Memory";
+  document.title = "Memory";
 }
 
 async function showGame(game: Game) {
@@ -110,7 +144,7 @@ async function showGame(game: Game) {
     onExit: () => (location.hash = "#/"),
     openModule: (id: string) => (location.hash = `#/${id}`),
   });
-  document.title = `${game.name} · SmartEar Memory`;
+  document.title = `${game.name} · Memory`;
   window.scrollTo(0, 0);
 }
 
