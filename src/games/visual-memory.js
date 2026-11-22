@@ -39,7 +39,7 @@ export const meta = {
   selfGuided: true,
 };
 
-const READY_MS = 850;
+const READY_MS = 500;
 
 function levelSpec(level) {
   const n = Math.min(16, level + 1);

@@ -116,8 +116,8 @@ export async function submitOverall(name: string, rating: number, games: number)
   try {
     await c.fs.setDoc(c.fs.doc(c.db, "memoryOverall", c.uid), {
       name: n,
-      rating: Math.min(36000, Math.floor(rating)),
-      games: Math.min(6, games),
+      rating: Math.min(60000, Math.floor(rating)),
+      games: Math.min(12, games),
       updatedAt: c.fs.serverTimestamp(),
     });
     return true;

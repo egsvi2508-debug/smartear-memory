@@ -37,6 +37,7 @@
 // fire-and-forget writes as Register ID's progress doc.
 
 import { ensureAudioReady, stopAllSound, playCorrectFx, playWrongFx, Tone } from "./audio.js";
+import * as fx from "./fx.js";
 
 /** SmartEar v2 hooks, set by the island wrapper:
  *  load(docId) / save(docId, progress), account sync through the app store;
@@ -47,7 +48,9 @@ export const mkHooks = { load: null, save: null, onRound: null, onRunEnd: null }
 
 export const LIVES = 3;
 const HISTORY_LEN = 40;
-const AUTO_NEXT_MS = 1600;
+const AUTO_NEXT_MS = 850; // after a clean round: keep the pace up
+const FAIL_NEXT_MS = 2100; // after a miss: long enough to read the tip
+const MILESTONES = { 3: "Heating up", 5: "On fire", 8: "Unstoppable", 12: "Legendary", 16: "Godlike" };
 const MODE_IDS = ["classic", "daily", "training"];
 
 /** The Memory suite, in menu order, drives the tab row on every hub. */
@@ -568,10 +571,14 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
 
     function updateHud() {
       levelLabel.textContent = `Level ${run.level}`;
+      game$.classList.toggle("heat-1", run.combo >= 2 && run.combo < 4);
+      game$.classList.toggle("heat-2", run.combo >= 4 && run.combo < 7);
+      game$.classList.toggle("heat-3", run.combo >= 7);
+      game$.classList.toggle("danger", !training && run.lives === 1);
       hearts.forEach((h, i) => h.classList.toggle("lost", i >= run.lives));
       scoreV.textContent = fmt(run.score);
       const mult = comboMult();
-      comboBadge.textContent = `×${mult} combo`;
+      comboBadge.textContent = `${run.combo} streak · ×${mult}`;
       comboBadge.classList.toggle("on", mult > 1);
       if (run.bestBefore && run.score > run.bestBefore) {
         scoreL.textContent = "new best!";
@@ -591,6 +598,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
       later,
       clearTimers,
       comboMult,
+      fx,
       isDestroyed: () => destroyed,
       setPhase,
       get phase() {
@@ -654,6 +662,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
         }
         let pts;
         run.lastSuccess = !!o.success;
+        const scoreBefore = run.score;
         if (o.success) {
           run.combo++;
           run.bestCombo = Math.max(run.bestCombo, run.combo);
@@ -683,6 +692,25 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
         card.classList.remove("good", "bad");
         void card.offsetWidth;
         card.classList.add(o.success ? "good" : "bad");
+        // Camera-friendly feedback: a stamp, a burst, a counting score.
+        try {
+          if (o.success) {
+            const mult = comboMult();
+            const milestone = MILESTONES[run.combo];
+            fx.flash(card, milestone ? "gold" : "good");
+            fx.burst(card, { kind: "good", count: milestone ? 34 : 22, glyphs: true });
+            if (milestone) fx.banner(card, milestone, `${run.combo} in a row · ×${mult}`);
+            else fx.stamp(card, resultTitle.textContent, `+${fmt(pts)}${mult > 1 ? ` ×${mult}` : ""}`, mult >= 3 ? "gold" : "good");
+            fx.kick(card, "pop", 340);
+          } else {
+            fx.flash(card, "bad");
+            fx.stamp(card, resultTitle.textContent, run.lives <= 0 && !training ? "Out of lives" : training ? "" : `${run.lives} ${run.lives === 1 ? "life" : "lives"} left`, "bad", 900);
+            fx.kick(card, "shake", 450);
+          }
+          if (pts) fx.floatText(scoreBox, `+${fmt(pts)}`);
+        } catch (e) {
+          console.warn(e);
+        }
         result.classList.toggle("success", !!o.success);
         resultTip.textContent = o.tip || "";
         legend.innerHTML = "";
@@ -707,6 +735,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
         void scoreBox.offsetWidth;
         if (pts) scoreBox.classList.add("bump");
         updateHud();
+        fx.countTo(scoreV, scoreBefore, run.score, fmt);
 
         nextBtn.classList.remove("auto");
         nextBar.style.animation = "none";
@@ -716,6 +745,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
           if (o.autoNext !== false) {
             void nextBar.offsetWidth;
             nextBar.style.animation = "";
+            nextBar.style.animationDuration = `${AUTO_NEXT_MS}ms`;
             nextBtn.classList.add("auto");
             autoTimer = later(advance, AUTO_NEXT_MS);
           }
@@ -729,6 +759,14 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
         } else {
           statusText.textContent = "Out of lives";
           nextLabel.textContent = "See results";
+        }
+        // Misses keep moving too (any action on the reveal stops the clock).
+        if (!o.success && o.autoNext !== false) {
+          void nextBar.offsetWidth;
+          nextBar.style.animation = "";
+          nextBar.style.animationDuration = `${FAIL_NEXT_MS}ms`;
+          nextBtn.classList.add("auto");
+          autoTimer = later(advance, FAIL_NEXT_MS);
         }
       },
       endRun: (quit) => endRun(quit),
@@ -747,6 +785,7 @@ export function openMemoryGame(container, game, { onExit, openModule, start } = 
       run.peakLevel = Math.max(run.peakLevel, run.level);
       if (run.lives <= 0) return endRun(false);
       updateHud();
+      if (run.lastSuccess) fx.kick(levelLabel, "pop", 650);
       setPhase("ready");
       runner.startRound({ retry: !run.lastSuccess });
     }

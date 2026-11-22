@@ -1,4 +1,4 @@
-// rank.ts, competitive ranks. A game's rank comes from the highest level
+// rank.ts — competitive ranks. A game's rank comes from the highest level
 // reached in a ranked run (Classic or Daily; Practice doesn't count).
 // Overall rank comes from the average across all six games, so playing
 // every game is how you climb.
@@ -10,16 +10,15 @@ export interface Tier {
   color2: string;
 }
 
-export const UNRANKED: Tier = { name: "Unranked", min: 0, color: "#7a746b", color2: "#45413b" };
-// Muted metal and stone colours: flat fills, no neon, no pastel.
+export const UNRANKED: Tier = { name: "Unranked", min: 0, color: "#4a4452", color2: "#2e2a35" };
 export const TIERS: Tier[] = [
-  { name: "Bronze", min: 1, color: "#a8693a", color2: "#5e3a1f" },
-  { name: "Silver", min: 3, color: "#a9adb1", color2: "#5d6166" },
-  { name: "Gold", min: 5, color: "#c79a2b", color2: "#6f5414" },
-  { name: "Platinum", min: 7, color: "#8fa39c", color2: "#4a5c56" },
-  { name: "Diamond", min: 9, color: "#5d87b3", color2: "#2c4866" },
-  { name: "Master", min: 11, color: "#3f8466", color2: "#1e4636" },
-  { name: "Grandmaster", min: 13, color: "#b8432f", color2: "#5f1f14" },
+  { name: "Bronze", min: 1, color: "#e0915a", color2: "#8a4a22" },
+  { name: "Silver", min: 3, color: "#dfe6ee", color2: "#7d8a99" },
+  { name: "Gold", min: 5, color: "#ffd75e", color2: "#c58a12" },
+  { name: "Platinum", min: 7, color: "#7ff0dc", color2: "#1f9c8c" },
+  { name: "Diamond", min: 9, color: "#8ec5ff", color2: "#3462d9" },
+  { name: "Master", min: 11, color: "#d9a6ff", color2: "#8a3fd1" },
+  { name: "Grandmaster", min: 13, color: "#ff7a90", color2: "#c4123a" },
 ];
 
 export function tierOf(level: number): Tier {
@@ -44,12 +43,14 @@ export function tierProgress(level: number): number {
   return Math.max(0, Math.min(1, (level - lo) / (n.tier.min - lo)));
 }
 
-/** A hexagonal badge: one flat fill and a darker inner outline. `size` in px. */
+/** A hexagonal badge. `size` in px. */
 export function badge(t: Tier, size = 48, label?: string): string {
-  const letter = label ?? (t === UNRANKED ? "0" : t.name === "Grandmaster" ? "GM" : t.name[0]);
+  const id = `g${Math.random().toString(36).slice(2, 8)}`;
+  const letter = label ?? (t === UNRANKED ? "–" : t.name === "Grandmaster" ? "GM" : t.name[0]);
   return `<svg class="badge" width="${size}" height="${size}" viewBox="0 0 48 48" role="img" aria-label="${t.name}">
-  <path d="M24 2 43 13v22L24 46 5 35V13z" fill="${t.color}"/>
-  <path d="M24 7 38.5 15.5v17L24 41 9.5 32.5v-17z" fill="none" stroke="${t.color2}" stroke-width="2"/>
-  <text x="24" y="29.5" text-anchor="middle" font-family="Space Mono, monospace" font-weight="700" font-size="${letter.length > 1 ? 13 : 16}" fill="#141210">${letter}</text>
+  <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.color}"/><stop offset="1" stop-color="${t.color2}"/></linearGradient></defs>
+  <path d="M24 2 43 13v22L24 46 5 35V13z" fill="url(#${id})"/>
+  <path d="M24 7 38.5 15.5v17L24 41 9.5 32.5v-17z" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5"/>
+  <text x="24" y="29.5" text-anchor="middle" font-family="Space Mono, monospace" font-weight="700" font-size="${letter.length > 1 ? 13 : 16}" fill="#1a1020">${letter}</text>
 </svg>`;
 }

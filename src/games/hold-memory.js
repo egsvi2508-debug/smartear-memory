@@ -28,7 +28,7 @@ export const meta = {
   selfGuided: true,
 };
 
-const READY_MS = 800;
+const READY_MS = 500;
 
 // [hold seconds, other notes, how close they come (semitones), chance of a chord]
 const LEVELS = [

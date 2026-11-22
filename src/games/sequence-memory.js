@@ -33,7 +33,7 @@ export const meta = {
   selfGuided: true,
 };
 
-const READY_MS = 800;
+const READY_MS = 500;
 const LOW = 60; // C4
 const HIGH = 77; // F5
 const CUES = {

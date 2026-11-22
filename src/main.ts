@@ -1,4 +1,4 @@
-// SmartEar Memory, the six memory games from SmartEar as their own app.
+// SmartEar Memory, the memory games from SmartEar as their own app.
 // Home lists the games; #/<game-id> opens one. Progress is kept in this
 // browser (localStorage) by the games' shared shell, memory-kit.js.
 
@@ -11,9 +11,10 @@ import "./styles/base.css";
 import "./styles/components.css";
 import "./styles/legacy.css";
 import "./games/memory.css";
+import "./games/fx.css";
 import "./styles/simple.css";
 import "./styles/bench.css";
-import "./styles/plain.css";
+import "./styles/extras.css";
 
 import { loadVexFlow } from "./lib/vexflow";
 import { mkHooks, todayKey } from "./games/memory-kit.js";
@@ -32,18 +33,30 @@ interface Game {
   id: string;
   name: string;
   line: string;
+  tint: string;
+  icon: string;
   storageKey: string;
   about: string[];
   load: () => Promise<{ open: Opener }>;
 }
 
+const svg = (body: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
 const GAMES: Game[] = [
-  { id: "visual-memory", name: "Visual", line: "Remember notes on the staff", storageKey: "smartear_visual_memory_v2", about: ["Notes flash on the staff for a few seconds, then vanish. Nothing plays: eyes only.", "Tap the staff where each note was. Pick ♭ ♮ ♯ first if a note needs one.", "A perfect board adds one more note. Three misses and the run is over."], load: () => import("./games/visual-memory.js") },
-  { id: "sequence-memory", name: "Sequence", line: "Play back a growing melody", storageKey: "smartear_sequence_memory_v1", about: ["A melody plays, with its notes, lit keys or sound alone (your choice).", "Play it back on the piano in the same order.", "Each success adds one note to the same melody. How long can you go?"], load: () => import("./games/sequence-memory.js") },
-  { id: "pairs-memory", name: "Pairs", line: "Find matching sounds", storageKey: "smartear_pairs_memory_v1", about: ["Every card hides a sound, and every sound is on two cards.", "Tap a card to hear it, then find its twin. Nothing is timed.", "Clear every pair within the miss limit to move up a level."], load: () => import("./games/pairs-memory.js") },
-  { id: "hold-memory", name: "Pitch Hold", line: "Hold one note in your head", storageKey: "smartear_hold_memory_v1", about: ["One tone plays. Keep it in mind, without singing it.", "A stream of other notes tries to knock it out of your head.", "Find your tone again on the strip and lock it in."], load: () => import("./games/hold-memory.js") },
-  { id: "memory", name: "Compare", line: "Spot the note that changed", storageKey: "smartear_comparison_memory_v1", about: ["A melody plays while its notes light up on the staff.", "It plays again in the same key. Did any note change?", "If you heard a change, tap the note that changed."], load: () => import("./games/memory.js") },
-  { id: "relative-memory", name: "Relative", line: "Same tune, new key", storageKey: "smartear_relative_memory_v1", about: ["A melody plays while its notes light up on the staff.", "It plays again in a new key. Same tune, or did a note change?", "If you heard a change, tap the note that changed."], load: () => import("./games/memory.js").then((m) => ({ open: m.openRelative as Opener })) },
+  { id: "visual-memory", name: "Visual", line: "Remember notes on the staff", tint: "#ffb547", storageKey: "smartear_visual_memory_v2", about: ["Notes flash on the staff for a few seconds, then vanish. Nothing plays: eyes only.", "Tap the staff where each note was. Pick ♭ ♮ ♯ first if a note needs one.", "A perfect board adds one more note. Three misses and the run is over."],
+    icon: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), load: () => import("./games/visual-memory.js") },
+  { id: "sequence-memory", name: "Sequence", line: "Play back a growing melody", tint: "#f39a6b", storageKey: "smartear_sequence_memory_v1", about: ["A melody plays, with its notes, lit keys or sound alone (your choice).", "Play it back on the piano in the same order.", "Each success adds one note to the same melody. How long can you go?"],
+    icon: svg('<path d="M4 18V14M10 18V10M16 18V6M22 18V3"/>'), load: () => import("./games/sequence-memory.js") },
+  { id: "pairs-memory", name: "Pairs", line: "Find matching sounds", tint: "#8fc4a0", storageKey: "smartear_pairs_memory_v1", about: ["Every card hides a sound, and every sound is on two cards.", "Tap a card to hear it, then find its twin. Nothing is timed.", "Clear every pair within the miss limit to move up a level."],
+    icon: svg('<rect x="3" y="5" width="8" height="14" rx="2"/><rect x="13" y="5" width="8" height="14" rx="2"/>'), load: () => import("./games/pairs-memory.js") },
+  { id: "hold-memory", name: "Pitch Hold", line: "Hold one note in your head", tint: "#9fb8e6", storageKey: "smartear_hold_memory_v1", about: ["One tone plays. Keep it in mind, without singing it.", "A stream of other notes tries to knock it out of your head.", "Find your tone again on the strip and lock it in."],
+    icon: svg('<path d="M12 3v10"/><circle cx="12" cy="17" r="4"/>'), load: () => import("./games/hold-memory.js") },
+  { id: "memory", name: "Compare", line: "Spot the note that changed", tint: "#e3a9c9", storageKey: "smartear_comparison_memory_v1", about: ["A melody plays while its notes light up on the staff.", "It plays again in the same key. Did any note change?", "If you heard a change, tap the note that changed."],
+    icon: svg('<path d="M3 9h18M3 15h18"/><circle cx="15" cy="9" r="2" fill="currentColor"/>'), load: () => import("./games/memory.js") },
+  { id: "relative-memory", name: "Relative", line: "Same tune, new key", tint: "#c7b4f0", storageKey: "smartear_relative_memory_v1", about: ["A melody plays while its notes light up on the staff.", "It plays again in a new key. Same tune, or did a note change?", "If you heard a change, tap the note that changed."],
+    icon: svg('<path d="M4 17l6-6 4 4 6-7"/><path d="M15 8h5v5"/>'), load: () => import("./games/memory.js").then((m) => ({ open: m.openRelative as Opener })) },
+  { id: "note-rush", name: "Note Rush", line: "Read notes in every key, fast", tint: "#ff8f5a", storageKey: "smartear_note_rush_v1", about: ["A card flashes a clef, a key signature and a note. The key signature counts: F in D major is F♯.", "Type the letter (hold Shift for ♯) or tap the piano before the bar runs out.", "Every level is faster. Later cards change key, switch clef and show two notes: enter them from the bottom up."],
+    icon: svg('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'), load: () => import("./games/note-rush.js") },
 ];
 
 // ---------------------------------------------------------------- saved progress
@@ -69,7 +82,7 @@ const rankedLevel = (p: Progress | null) => (p ? Math.max(0, ...RANKED.map((m) =
 const rankedScore = (p: Progress | null) => (p ? Math.max(0, ...RANKED.map((m) => Number(p.best[m]?.score) || 0)) : 0);
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
-/** Overall: rating = 100 per ranked level across all six; rank from the average. */
+/** Overall: rating = 100 per ranked level across all games; rank from the average. */
 function overall() {
   const levels = GAMES.map((g) => rankedLevel(progressOf(g)));
   const played = levels.filter((l) => l > 0).length;
@@ -227,13 +240,15 @@ function btn(text: string, cls: string, onClick: () => void) {
   return b;
 }
 
+const iconUrl = (g: Game) => `url("data:image/svg+xml,${encodeURIComponent(g.icon.replace('stroke="currentColor"', 'stroke="black"').replace(/fill="currentColor"/g, 'fill="black"').replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" '))}")`;
+
 function page(active: string): HTMLElement {
   closeGame();
   app.innerHTML = "";
   const nav = el("header", "nav");
   const inner = el("div", "nav-inner");
   const logo = link("#/", "logo", "");
-  logo.innerHTML = `<span class="logo-short">MM</span><span class="logo-full">Musical Memory</span>`;
+  logo.innerHTML = `<span class="logo-mark">${svg('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>')}</span><span>Musical Memory</span>`;
   const links = el("nav", "nav-links");
   links.append(link("#/", active === "home" ? "on" : "", "Games"), link("#/top", active === "top" ? "on" : "", "Leaderboard"), link("#/me", active === "me" ? "on" : "", "Ranks"));
   const o = overall();
@@ -256,16 +271,19 @@ function page(active: string): HTMLElement {
 function tiles(): HTMLElement {
   const wrap = el("section", "tiles-wrap");
   const grid = el("div", "tiles");
-  GAMES.forEach((g, i) => {
+  GAMES.forEach((g) => {
     const a = link(`#/${g.id}`, "tile", "");
+    const icon = el("span", "tile-icon");
+    icon.style.setProperty("--tint", g.tint);
+    icon.innerHTML = g.icon;
     const lv = rankedLevel(progressOf(g));
     const t = tierOf(lv);
-    const text = el("span", "tile-text");
-    text.append(el("span", "tile-name", g.name), el("span", "tile-line", g.line));
-    const rk = el("span", "tile-rank");
-    rk.innerHTML = `${badge(t, 26)}<span></span>`;
-    (rk.querySelector("span") as HTMLElement).textContent = lv ? `${t.name} · Lv ${lv}` : "Unranked";
-    a.append(el("span", "tile-num", String(i + 1).padStart(2, "0")), text, rk, el("span", "tile-go", "Play"));
+    const corner = el("span", "tile-badge");
+    corner.innerHTML = badge(t, 30);
+    a.append(corner, icon, el("span", "tile-name", g.name), el("span", "tile-line", g.line));
+    const rk = el("span", "tile-rank", lv ? `${t.name} · Lv ${lv}` : "Unranked");
+    rk.style.color = lv ? t.color : "";
+    a.append(rk);
     grid.append(a);
   });
   wrap.append(grid);
@@ -297,10 +315,10 @@ function showHome() {
   const main = page("home");
   const hero = el("section", "band hero");
   const inner = el("div", "band-inner");
-  inner.append(el("div", "eyebrow", "Ranked ear training"), el("h1", "hero-title", "Musical Memory"), el("p", "hero-sub", "Six memory games. Climb from Bronze to Grandmaster, then challenge your friends."));
+  inner.append(el("div", "eyebrow", "Ranked ear training"), el("h1", "hero-title", "Musical Memory"), el("p", "hero-sub", `${GAMES.length} ear games. Climb from Bronze to Grandmaster, then challenge your friends.`));
   const o = overall();
   if (o.played) {
-    inner.append(rankCard(Math.floor(o.avg), "Your overall rank", `Rating ${fmt(o.rating)} · ${o.played}/6 games ranked`, overallNext(o)));
+    inner.append(rankCard(Math.floor(o.avg), "Your overall rank", `Rating ${fmt(o.rating)} · ${o.played}/${GAMES.length} games ranked`, overallNext(o)));
   }
   if (!playerName()) {
     const pick = el("div", "name-pick");
@@ -321,7 +339,7 @@ function showHome() {
   const prev = el("div", "panel");
   prev.append(el("h2", "", "Top players"));
   const prevList = loadingBoard(5);
-  prev.append(prevList, link("#/top", "panel-link", "Full leaderboard"));
+  prev.append(prevList, link("#/top", "panel-link", "Full leaderboard →"));
   prevWrap.append(prev);
   main.append(prevWrap);
   fillOverall(prevList, 5);
@@ -336,7 +354,7 @@ function showHome() {
     c.innerHTML = `${badge(t, 44)}<b>${t.name}</b><span>Level ${t.min}+</span>`;
     row.append(c);
   });
-  lp.append(row, el("p", "fine", "Your rank in a game is the highest level you reach in Classic or Daily. Practice runs don't count. Your overall rank is the average across all six games."));
+  lp.append(row, el("p", "fine", "Your rank in a game is the highest level you reach in Classic or Daily. Practice runs don't count. Your overall rank is the average across all your games."));
   ladder.append(lp);
 
   const settings = el("div", "panel");
@@ -413,6 +431,7 @@ async function showGame(game: Game, challenge: Challenge | null) {
   const my = ++token;
   const main = page("game");
   const band = el("section", "band game-band");
+  band.style.setProperty("--icon", iconUrl(game));
   if (challenge) {
     const sameDay = challenge.mode === "daily" && challenge.date === todayKey();
     const banner = el("div", "challenge-banner");
@@ -437,7 +456,7 @@ async function showGame(game: Game, challenge: Challenge | null) {
   const topHead = el("div", "panel-head");
   topHead.append(el("h2", "", "Top players"));
   const topLinks = el("div", "panel-links");
-  topLinks.append(link(`#/top?g=${game.id}&t=today`, "panel-link", "Today's Daily"), link(`#/top?g=${game.id}`, "panel-link", "Full board"));
+  topLinks.append(link(`#/top?g=${game.id}&t=today`, "panel-link", "Today's Daily →"), link(`#/top?g=${game.id}`, "panel-link", "Full board →"));
   topHead.append(topLinks);
   const topList = loadingBoard(6);
   topPanel.append(topHead, topList);
@@ -529,7 +548,7 @@ function showRunEnd(g: Game, r: { score: number; level: number; mode: string; co
   const b = el("div", "ov-badge");
   b.innerHTML = badge(t, 112);
   card.append(b);
-  if (rankUp) card.append(el("div", "ov-tier", `${tierOf(oldLevel).name} to ${t.name}`));
+  if (rankUp) card.append(el("div", "ov-tier", `${tierOf(oldLevel).name} → ${t.name}`));
   else card.append(el("div", "ov-tier", t.name));
 
   const nums = el("div", "ov-nums");
@@ -608,7 +627,7 @@ function showRunEnd(g: Game, r: { score: number; level: number; mode: string; co
 
 /** A quick confetti burst behind the card. */
 function burst(host: HTMLElement, color: string) {
-  const colors = [color, "#efe9df"];
+  const colors = [color, "#ffffff", "#ff5a1f", "#ffd75e"];
   for (let i = 0; i < 36; i++) {
     const p = el("i", "confetti");
     const ang = Math.random() * Math.PI * 2;
@@ -666,7 +685,7 @@ function showDashboard() {
   const inner = el("div", "band-inner");
   const o = overall();
   inner.append(el("div", "eyebrow", "Your ranks"));
-  inner.append(rankCard(Math.floor(o.avg), playerName() || "Overall", `Rating ${fmt(o.rating)} · ${o.played}/6 games ranked`, overallNext(o)));
+  inner.append(rankCard(Math.floor(o.avg), playerName() || "Overall", `Rating ${fmt(o.rating)} · ${o.played}/${GAMES.length} games ranked`, overallNext(o)));
   band.append(inner);
   const panels = el("section", "panels one");
   const panel = el("div", "panel");
@@ -681,7 +700,10 @@ function showDashboard() {
     const tr = el("tr");
     const name = el("td");
     const a = link(`#/${g.id}`, "row-link", "");
-    a.append(el("span", "", g.name));
+    const ic = el("span", "mini-icon");
+    ic.style.setProperty("--tint", g.tint);
+    ic.innerHTML = g.icon;
+    a.append(ic, el("span", "", g.name));
     name.append(a);
     const rk = el("td");
     rk.innerHTML = `<span class="rank-cell">${badge(t, 24)}<span>${t.name}</span></span>`;
@@ -851,7 +873,7 @@ async function fillGame(box: HTMLElement, g: Game, n: number, day?: string) {
 async function fillOverall(box: HTMLElement, n: number) {
   const [rows, me] = await Promise.all([topOverall(n), myUid()]);
   if (!box.isConnected || emptyBoard(box, rows)) return;
-  (rows as OverallEntry[]).forEach((e, i) => box.append(boardRow(i + 1, e.name, Math.floor(e.rating / 100 / GAMES.length), `${fmt(e.rating)} · ${e.games}/6`, e.uid === me)));
+  (rows as OverallEntry[]).forEach((e, i) => box.append(boardRow(i + 1, e.name, Math.floor(e.rating / 100 / GAMES.length), `${fmt(e.rating)} · ${e.games}/${GAMES.length}`, e.uid === me)));
 }
 
 function showLeaderboard(gameId: string | null, todayOnly = false) {
@@ -887,7 +909,7 @@ function showLeaderboard(gameId: string | null, todayOnly = false) {
   const head = el("div", "board-head");
   head.append(el("span", "", "#"), el("span", "", ""), el("span", "", "Player"), el("span", "", game ? "Level · score" : "Rating · games"));
   const list = loadingBoard(8);
-  panel.append(head, list, el("p", "fine", day ? "Today's Daily puzzle: everyone gets the same one, and only your first attempt counts. A fresh board every day." : game ? "Each player's best Classic or Daily run. Ranked by level, then score." : "Rating = 100 points for every ranked level across all six games."));
+  panel.append(head, list, el("p", "fine", day ? "Today's Daily puzzle: everyone gets the same one, and only your first attempt counts. A fresh board every day." : game ? "Each player's best Classic or Daily run. Ranked by level, then score." : "Rating = 100 points for every ranked level across all games."));
   panels.append(panel);
   main.append(band, panels);
   document.title = "Leaderboard · Musical Memory";

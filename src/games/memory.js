@@ -33,7 +33,7 @@ export const meta = {
   selfGuided: true,
 };
 
-const READY_MS = 800;
+const READY_MS = 500;
 const ALTER_CHANCE = 0.55;
 const MAJOR_SCALE_SET = new Set(MAJOR_SCALE);
 
