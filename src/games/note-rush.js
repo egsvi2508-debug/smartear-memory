@@ -9,7 +9,7 @@
 // Built on memory-kit.
 
 import { createPiano } from "./memory-inputs.js";
-import { playNotes, stopAllSound } from "./audio.js";
+import { playNotes, stopAllSound, unmute } from "./audio.js";
 import { noteLabel } from "./theory.js";
 import { getNoteSystem } from "./settings.js";
 import { openMemoryGame, el, pick, randInt } from "./memory-kit.js";
@@ -270,6 +270,7 @@ function createRunner(ctx) {
   return {
     startRound() {
       stopAllSound();
+      unmute();
       ci = 0;
       buildRound();
       ctx.setPhase("ready");

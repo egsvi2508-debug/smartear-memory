@@ -169,6 +169,7 @@ export function openMemoryGame(container, game, { onExit } = {}) {
   });
 
   function onKey(e) {
+    unlockAudio();
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     if ((e.key === "Enter" || e.key === " ") && e.target && e.target.closest && e.target.closest("button")) return;
@@ -176,6 +177,7 @@ export function openMemoryGame(container, game, { onExit } = {}) {
     if (handled === true) e.preventDefault();
   }
   window.addEventListener("keydown", onKey);
+  root.addEventListener("pointerdown", unlockAudio);
 
   function stopRunner() {
     if (runner && runner.destroy) runner.destroy();

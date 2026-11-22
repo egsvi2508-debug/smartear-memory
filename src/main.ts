@@ -15,7 +15,7 @@ import "./styles/simple.css";
 import "./styles/site.css";
 
 import { loadVexFlow } from "./lib/vexflow";
-import { preloadPiano, stopAllSound } from "./lib/engine";
+import { preloadPiano, stopAllSound, ensureAudio } from "./lib/engine";
 
 type Handle = { destroy?: () => void } | void;
 type Opener = (c: HTMLElement, o: { onExit: () => void; openModule: (id: string) => void }) => Handle;
@@ -80,6 +80,7 @@ function showHome() {
     const icon = el("span", "tile-icon");
     icon.innerHTML = g.icon;
     a.append(icon, el("span", "tile-name", g.name));
+    a.addEventListener("click", () => void ensureAudio().catch(() => {}));
     grid.append(a);
   });
   main.append(logo, grid);

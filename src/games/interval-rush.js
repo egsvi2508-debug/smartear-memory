@@ -7,7 +7,7 @@
 //
 // Built on memory-kit.
 
-import { ensureAudioReady, playNotes, stopAllSound, scheduleLength } from "./audio.js";
+import { ensureAudioReady, playNotes, stopAllSound, unmute, scheduleLength, Tone } from "./audio.js";
 import { noteLabel } from "./theory.js";
 import { getNoteSystem } from "./settings.js";
 import { openMemoryGame, el, pick, randInt } from "./memory-kit.js";
@@ -175,10 +175,15 @@ function createRunner(ctx) {
     const c = cards[ci];
     if (!c) return 0;
     stopAllSound();
+    unmute(); // stopAllSound() mutes the output; turn it back on for this interval
     const midis = c.notes.map((n) => n.midi);
-    const sched = c.together ? playNotes(midis, { mode: "harmonic", noteDur: 1.1, velocity: 0.85 }) : playNotes(midis, { mode: "melodic", noteDur: sp.gap * 1.7, gap: sp.gap, velocity: 0.85 });
-    const len = Math.round(scheduleLength(sched) * 1000);
+    const sound = () => (c.together ? playNotes(midis, { mode: "harmonic", noteDur: 1.1, velocity: 0.85 }) : playNotes(midis, { mode: "melodic", noteDur: sp.gap * 1.7, gap: sp.gap, velocity: 0.85 }));
+    const sched = sound();
     const my = token;
+    if (import.meta.env && import.meta.env.DEV) globalThis.__irSound = { notes: sched.length, muted: Tone.getDestination().mute, state: Tone.getContext().state };
+    // Audio not allowed yet (no tap on this page so far): play it as soon as it is.
+    if (!sched.length) ensureAudioReady().then(() => my === token && !ctx.isDestroyed() && (unmute(), sound()), () => {});
+    const len = Math.round(scheduleLength(sched)); // already in ms
     // light the dots in time with the sound
     if (c.together) {
       fx.kick(dotA, "ring", 500);
