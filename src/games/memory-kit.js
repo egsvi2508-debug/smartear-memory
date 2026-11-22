@@ -353,8 +353,22 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
       if (e.key === "Enter") playAgain();
     });
     result.append(resultTip, legend, over, resultActions);
+    // The pop-up can be closed to look at the game, and opened again from a small button.
+    const overX = el("button", "mk-over-x", "×");
+    overX.type = "button";
+    overX.setAttribute("aria-label", "Close");
+    result.prepend(overX);
+    const reopen = el("button", "mk-btn primary mk-over-reopen", "Play again");
+    reopen.type = "button";
+    const popOpen = () => result.classList.contains("over") && !result.classList.contains("tucked");
+    const tuck = (on) => {
+      result.classList.toggle("tucked", on);
+      reopen.classList.toggle("show", on);
+    };
+    overX.addEventListener("click", () => tuck(true));
+    reopen.addEventListener("click", () => tuck(false));
 
-    game$.append(hud, card, status, controls, result, statsStrip(game.id));
+    game$.append(hud, card, status, controls, result, reopen, statsStrip(game.id));
     if (rules && rules.length) {
       const box = el("section", "mk-rules");
       box.appendChild(el("div", "mk-rules-h", "Rules"));
@@ -503,6 +517,8 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
         nextBtn.classList.remove("auto");
         nextBar.style.animation = "none";
         result.classList.toggle("over", !o.success);
+        tuck(false);
+        reopen.textContent = "Play again";
         if (!o.success) {
           overSub.textContent = streakMode
             ? `Streak ${run.streak} at level ${run.level}`
@@ -552,7 +568,10 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
 
     runApi = {
       onKey(e) {
-        if (e.key === "Escape") return exit(), true;
+        if (e.key === "Escape") {
+          if (popOpen()) return tuck(true), true;
+          return exit(), true;
+        }
         if (phase === "intro") {
           if (e.key === "Enter" || e.key === " ") return playAgain(), true;
           return false;
@@ -575,6 +594,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
       overSub.textContent = bestLine(game.id);
       pVal.value = String(run.startLevel);
       result.classList.add("over", "intro");
+      reopen.textContent = "Play";
       setPhase("intro");
       return;
     }

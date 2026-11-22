@@ -430,3 +430,19 @@ body { min-height: 100dvh; }
 /* the start pop-up's "your best" line */
 .mk-root.play .mk-result.intro .mk-over-sub { color: var(--a-yellow); font-weight: 700; }
 .mk-root.play .mk-over .mk-seg-btn { padding-left: 4px; padding-right: 4px; }
+
+/* close the round-over pop-up, and a small button to bring it back */
+.mk-root.play .mk-over-x { display: none; }
+.mk-root.play .mk-result.over .mk-over-x {
+  display: grid; place-items: center; position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; padding: 0;
+  border: 0; border-radius: 50%; background: var(--a-panel-2); color: var(--a-dim); font: 700 22px/1 var(--font-ui); cursor: pointer;
+}
+.mk-root.play .mk-result.over .mk-over-x:hover { color: var(--a-ink); }
+.mk-root.play .mk-result.over.tucked { display: none; }
+.mk-root.play .mk-over-reopen { display: none; }
+.mk-root.play .mk-over-reopen.show {
+  display: inline-flex; position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 55; transform: translateX(-50%);
+  min-width: 180px; min-height: 50px; justify-content: center; font-size: 17px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: reopen-in 0.2s ease both;
+}
+@keyframes reopen-in { from { opacity: 0; transform: translate(-50%, 10px); } }
