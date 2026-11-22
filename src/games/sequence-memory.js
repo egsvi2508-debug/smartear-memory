@@ -325,7 +325,7 @@ function createRunner(ctx) {
 }
 
 function renderSettings(slot, prefs, setPref) {
-  slot.appendChild(el("div", "mk-section-label", "While the melody plays, show"));
+  slot.appendChild(el("div", "mk-section-label", "Show"));
   const seg = el("div", "mk-seg");
   seg.setAttribute("role", "radiogroup");
   const current = CUES[prefs.cue] ? prefs.cue : "notes";
@@ -333,7 +333,7 @@ function renderSettings(slot, prefs, setPref) {
     const b = el("button", "mk-seg-btn" + (id === current ? " active" : ""));
     b.setAttribute("role", "radio");
     b.setAttribute("aria-checked", String(id === current));
-    b.append(el("span", "mk-seg-label", c.label), el("span", "mk-seg-sub mono", c.factor === 1 ? "×1 pts" : `×${c.factor} pts`));
+    b.append(el("span", "mk-seg-label", c.label));
     b.addEventListener("click", () => {
       setPref("cue", id);
       seg.querySelectorAll(".mk-seg-btn").forEach((x) => {

@@ -6,8 +6,7 @@
 // notes, which you enter from the bottom up. Each level is a set of cards;
 // the time per card shrinks as you climb.
 //
-// Built on memory-kit, so it gets lives, Daily, Practice, ranks and the
-// leaderboard like the other games.
+// Built on memory-kit.
 
 import { createPiano } from "./memory-inputs.js";
 import { playNotes, stopAllSound } from "./audio.js";
@@ -22,8 +21,28 @@ const FLAT_ORDER = [6, 2, 5, 1, 4, 0, 3]; // B E A D G C F
 const VEX_KEY = { 0: "C", 1: "G", 2: "D", 3: "A", 4: "E", 5: "B", 6: "F#", 7: "C#", "-1": "F", "-2": "Bb", "-3": "Eb", "-4": "Ab", "-5": "Db", "-6": "Gb", "-7": "Cb" };
 const KEY_NAME = { 0: "C major", 1: "G major", 2: "D major", 3: "A major", 4: "E major", 5: "B major", 6: "F♯ major", 7: "C♯ major", "-1": "F major", "-2": "B♭ major", "-3": "E♭ major", "-4": "A♭ major", "-5": "D♭ major", "-6": "G♭ major", "-7": "C♭ major" };
 // Diatonic step numbers (octave * 7 + letter): the staff's bottom and top lines.
-const RANGE = { treble: [30, 38], bass: [18, 26] }; // E4–F5, G2–A3
-const MILESTONES = { 10: "10 streak", 25: "25 streak", 50: "50 streak!", 75: "75 streak!", 100: "100 streak!!" };
+const RANGE = {
+  treble: [30, 38], // E4–F5
+  bass: [18, 26], // G2–A3
+  alto: [24, 32], // F3–G4
+  tenor: [22, 30], // D3–E4
+  soprano: [28, 36], // C4–D5
+  "mezzo-soprano": [26, 34], // A3–B4
+  "baritone-c": [20, 28], // B2–C4
+};
+const CLEF_NAME = { treble: "Treble clef", bass: "Bass clef", alto: "Alto clef", tenor: "Tenor clef", soprano: "Soprano clef", "mezzo-soprano": "Mezzo clef", "baritone-c": "Baritone clef" };
+/** Clefs by level: treble, then bass, then the C clefs, then the rare ones. */
+function clefsFor(L) {
+  const c = ["treble"];
+  if (L >= 4) c.push("bass");
+  if (L >= 10) c.push("alto");
+  if (L >= 12) c.push("tenor");
+  if (L >= 14) c.push("soprano", "mezzo-soprano", "baritone-c");
+  return c;
+}
+// VexFlow can't place key signatures correctly on these, so they only get
+// cards with no sharps or flats in the key.
+const NO_KEYSIG = new Set(["soprano", "mezzo-soprano", "baritone-c"]);
 
 // Computer-keyboard layouts.
 const PIANO_ROW = { KeyA: 0, KeyW: 1, KeyS: 2, KeyE: 3, KeyD: 4, KeyF: 5, KeyT: 6, KeyG: 7, KeyY: 8, KeyH: 9, KeyU: 10, KeyJ: 11 };
@@ -41,7 +60,7 @@ export function spec(level) {
     cards: 8 + Math.min(4, Math.floor(L / 3)),
     maxAcc: [0, 0, 1, 2, 3, 4, 5, 7][Math.min(L, 7)],
     keyEvery: L <= 1 ? 99 : L <= 3 ? 3 : L <= 5 ? 2 : 1,
-    clefs: L >= 4 ? ["treble", "bass"] : ["treble"],
+    clefs: clefsFor(L),
     ledger: L >= 8 ? 2 : L >= 5 ? 1 : 0,
     dyad: L >= 7 ? Math.min(0.6, 0.3 + 0.05 * (L - 7)) : 0,
     written: L >= 9 ? Math.min(0.3, 0.12 + 0.03 * (L - 9)) : 0,
@@ -84,14 +103,6 @@ function makeCard(rng, sp, key, clef, prevStep) {
   return { key, clef, notes: [makeNote(key, s, written)] };
 }
 
-function pcName(pc) {
-  const sys = getNoteSystem();
-  const white = LETTER_PC.indexOf(pc);
-  if (white >= 0) return noteLabel({ letter: LETTERS[white], alter: 0 }, sys);
-  const below = LETTERS[LETTER_PC.indexOf(pc - 1)];
-  const above = LETTERS[LETTER_PC.indexOf(pc + 1)];
-  return `${noteLabel({ letter: below, alter: 1 }, sys)}/${noteLabel({ letter: above, alter: -1 }, sys)}`;
-}
 function spelled(n) {
   return noteLabel({ letter: LETTERS[n.letter], alter: n.alter }, getNoteSystem());
 }
@@ -125,17 +136,12 @@ function drawStaff(host, card) {
 function createRunner(ctx) {
   const { run, rng, stage, controls, fx } = ctx;
   const layout = LAYOUTS[ctx.prefs.keys] ? ctx.prefs.keys : "letters";
-  if (run.noteStreak === undefined) run.noteStreak = 0;
-  if (run.bestStreak === undefined) run.bestStreak = 0;
 
   stage.innerHTML = "";
   const top = el("div", "nr-top");
   const keyTag = el("div", "nr-keytag", "");
   const counter = el("div", "nr-count mono", "");
-  const streak = el("div", "nr-streak");
-  const streakN = el("b", "mono", "0");
-  streak.append(streakN, el("span", "", "streak"));
-  top.append(keyTag, counter, streak);
+  top.append(keyTag, counter);
   const cardEl = el("div", "nr-card");
   const staffHost = el("div", "nr-staff");
   const answer = el("div", "nr-answer");
@@ -149,8 +155,8 @@ function createRunner(ctx) {
   const hint = el("div", "nr-hint");
   hint.innerHTML =
     layout === "piano"
-      ? "Type: <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> = C D E F G A B · <kbd>W</kbd><kbd>E</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd> = black keys"
-      : "Type the letter: <kbd>G</kbd> = G · hold <kbd>Shift</kbd> for ♯ (<kbd>Shift</kbd>+<kbd>A</kbd> = A♯/B♭)";
+      ? "<kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> white · <kbd>W</kbd><kbd>E</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd> black"
+      : "<kbd>A</kbd>–<kbd>G</kbd> · <kbd>Shift</kbd> = ♯";
   controls.appendChild(hint);
 
   let sp = spec(run.level);
@@ -158,21 +164,9 @@ function createRunner(ctx) {
   let ci = 0;
   let ni = 0; // which note of the card we're waiting for
   let token = 0;
-  let cardStart = 0;
-  let roundPts = 0;
-  let hits = 0;
   let lastKey = null;
   let lastClef = null;
   let live = false;
-
-  function setStreak(n) {
-    run.noteStreak = n;
-    run.bestStreak = Math.max(run.bestStreak, n);
-    streakN.textContent = String(n);
-    streak.classList.toggle("hot", n >= 10);
-    streak.classList.toggle("blazing", n >= 25);
-    if (n) fx.kick(streak, "pump", 300);
-  }
 
   function buildRound() {
     sp = spec(run.level);
@@ -183,7 +177,8 @@ function createRunner(ctx) {
     for (let i = 0; i < sp.cards; i++) {
       if (i % sp.keyEvery === 0) key = sp.maxAcc ? randInt(rng, -sp.maxAcc, sp.maxAcc) : 0;
       if (i % 2 === 0 || sp.clefs.length === 1) clef = pick(rng, sp.clefs);
-      const card = makeCard(rng, sp, key, clef, prev);
+      if (i === 1 && sp.clefs.length > 2) clef = sp.clefs[sp.clefs.length - 1]; // show the newest clef early
+      const card = makeCard(rng, sp, NO_KEYSIG.has(clef) ? 0 : key, clef, prev);
       prev = card.notes[0].step;
       cards.push(card);
     }
@@ -202,16 +197,15 @@ function createRunner(ctx) {
     cardEl.classList.add("in");
     const newKey = card.key !== lastKey && ci > 0;
     const newClef = card.clef !== lastClef && ci > 0;
-    keyTag.textContent = newClef ? (card.clef === "bass" ? "Bass clef!" : "Treble clef!") : newKey ? "New key!" : "";
+    keyTag.textContent = newClef ? `${CLEF_NAME[card.clef]}!` : newKey ? "New key!" : "";
     if (newKey || newClef) fx.kick(keyTag, "flash", 700);
     lastKey = card.key;
     lastClef = card.clef;
     counter.textContent = `${ci + 1}/${cards.length}`;
     piano.clear();
     const ms = card.notes.length > 1 ? Math.round(sp.ms * 1.9) : sp.ms;
-    cardStart = performance.now();
     ctx.timer.start(ms);
-    ctx.later(() => my === token && live && miss("time"), ms);
+    ctx.later(() => my === token && live && miss(), ms);
   }
 
   function input(pc, how) {
@@ -227,7 +221,7 @@ function createRunner(ctx) {
       if (ni >= card.notes.length) hit();
     } else {
       piano.flash(60 + pc, "bad", 500);
-      miss("wrong", pc);
+      miss();
     }
     void how;
     return true;
@@ -235,33 +229,22 @@ function createRunner(ctx) {
 
   function hit() {
     token++;
-    const card = cards[ci];
-    const ms = card.notes.length > 1 ? sp.ms * 1.9 : sp.ms;
-    const left = Math.max(0, 1 - (performance.now() - cardStart) / ms);
-    const pts = 10 + 2 * run.level + Math.round(12 * left) + 6 * (card.notes.length - 1);
-    roundPts += pts;
-    hits++;
-    setStreak(run.noteStreak + 1);
     cardEl.classList.remove("in");
     cardEl.classList.add("out");
-    fx.burst(cardEl, { count: left > 0.6 ? 14 : 9, kind: "good" });
-    fx.floatText(cardEl, left > 0.66 ? `+${pts} fast!` : `+${pts}`);
-    const m = MILESTONES[run.noteStreak];
-    if (m) fx.banner(ctx.card, m, "Keep going");
+    fx.burst(cardEl, { count: 10, kind: "good" });
     ci++;
     if (ci >= cards.length) {
       live = false;
       ctx.later(() => {
-        ctx.finishRound({ success: true, base: roundPts, units: [hits, cards.length], title: run.noteStreak >= 25 ? "Blazing" : "Level cleared" });
+        ctx.finishRound({ success: true });
       }, 160);
     } else ctx.later(showCard, 110);
   }
 
-  function miss(why, pressed) {
+  function miss() {
     live = false;
     token++;
     ctx.timer.reset(false);
-    setStreak(0);
     const card = cards[ci];
     cardEl.classList.remove("in", "out");
     void cardEl.offsetWidth;
@@ -275,14 +258,9 @@ function createRunner(ctx) {
     answer.textContent = `It was ${names}`;
     answer.className = "nr-answer show";
     playNotes(card.notes.map((n) => n.midi), { mode: "melodic", noteDur: 0.5, gap: 0.22 });
-    const inKey = card.notes.some((n) => n.written === null && n.alter !== 0);
-    let tip = `${names} in ${KEY_NAME[card.key]} (${card.clef} clef).`;
-    if (why === "wrong" && pressed !== undefined) tip = `You pressed ${pcName(pressed)}. ${tip}`;
-    if (inKey) tip += " The key signature changes that letter.";
-    if (card.notes.length > 1) tip += " Two notes: enter the lower one first.";
-    tip += ` ${hits}/${cards.length} cards.`;
+    const tip = `${names} · ${KEY_NAME[card.key]} · ${CLEF_NAME[card.clef]}`;
     ctx.later(() => {
-      ctx.finishRound({ success: false, partial: roundPts, units: [hits, cards.length], title: why === "time" ? "Too slow" : "Wrong note", tip });
+      ctx.finishRound({ success: false, tip });
     }, 650);
   }
 
@@ -293,13 +271,10 @@ function createRunner(ctx) {
     startRound() {
       stopAllSound();
       ci = 0;
-      roundPts = 0;
-      hits = 0;
       buildRound();
       ctx.setPhase("ready");
-      ctx.splash(`Level ${run.level}`, `${sp.cards} cards · ${(sp.ms / 1000).toFixed(1)} s each${sp.dyad ? " · two-note cards" : ""}`);
-      ctx.status(sp.dyad ? "Two notes? Lower one first." : "Name the note. The key signature counts.");
-      setStreak(run.noteStreak);
+      ctx.splash(`Level ${run.level}`);
+      ctx.status(sp.dyad ? "Two notes: lower one first" : "");
       ctx.later(() => {
         ctx.setPhase("play");
         live = true;
@@ -349,24 +324,9 @@ function renderSettings(slot, prefs, setPref) {
 const GAME = {
   id: "note-rush",
   title: "Note Rush",
-  tagline: "Notes flash in every key. Name them before the bar runs out. It only gets faster.",
   storageKey: "smartear_note_rush_v1",
-  docId: "note-rush-progress",
-  unitLabel: "Cards read",
-  accuracyLabel: "Cards read",
   defaultPrefs: { keys: "letters" },
   renderSettings,
-  modes: {
-    classic: { blurb: "3 lives. Every level is faster." },
-    daily: { blurb: "Same cards for everyone today." },
-    training: { blurb: "No lives, the speed follows you." },
-  },
-  howTo: [
-    ["Read", "A card shows a clef, a key signature and a note. The key signature counts: F in D major is F♯."],
-    ["Answer", "Type the letter (hold Shift for ♯), use piano rows, or tap the piano. Beat the bar."],
-    ["Two notes", "From level 7 some cards have two notes. Enter them from the bottom up."],
-  ],
-  keysHint: "<kbd>A</kbd>–<kbd>G</kbd> note · <kbd>Shift</kbd> = ♯",
   createRunner,
 };
 
