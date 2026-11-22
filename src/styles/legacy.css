@@ -1,0 +1,148 @@
+/* legacy.css — generic classes the carried-over modules ("islands":
+   rhythm Beat Lab, memory games, Register ID…) still use (.btn.primary,
+   .settings, .seg-btn.active, .num-input…), scoped under .legacy-root and
+   re-tokened onto the Hi-Fi theme. Generated from the original styles.css. */
+.legacy-root {
+  --ivory: var(--card);
+  --ivory-deep: var(--card-2);
+  --felt: var(--accent);
+  --lime: var(--gold);
+  --ink-mute: var(--muted);
+  --mist: var(--muted);
+  --brass: var(--gold);
+  --green: var(--good);
+  --green-deep: var(--good);
+  --red: var(--bad);
+  --font-body: var(--font-ui);
+  --shadow-pop-lg: var(--shadow);
+  font-family: var(--font-ui);
+  color: var(--ink);
+}
+.legacy-root .hidden { display: none !important; }
+/* Buttons and segments wear the Hi-Fi look (the app's .btn applies too). */
+.legacy-root .btn.primary { background: var(--accent); border-color: var(--accent-2); color: var(--accent-ink); box-shadow: var(--shadow-pop); }
+.legacy-root .btn.primary:hover { background: #e2632f; border-color: var(--accent-2); }
+.legacy-root .btn.primary:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-2); }
+.legacy-root .btn.ghost { background: transparent; }
+.legacy-root .btn.sm { min-height: 36px; padding: 6px 12px; font-size: var(--fs-xs); }
+.legacy-root .btn.lg { min-height: 52px; padding: 14px 26px; font-size: var(--fs-md); }
+.legacy-root .settings {
+  width: 100%; max-width: 1100px; margin: 0 auto;
+  padding: clamp(24px, 5vh, 48px) clamp(16px, 4vw, 40px) 60px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.legacy-root .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--felt); font-weight: 700; }
+.legacy-root .countdown {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(54px, 14vw, 108px);
+  color: var(--ink);
+  padding: 15vh 0;
+  
+}
+.legacy-root .countdown.go { color: var(--lime); }
+.legacy-root .countdown.pop { animation: countdownPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes countdownPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.legacy-root .summary-goal { font-size: 15px; font-weight: 600; color: var(--ink-mute); }
+.legacy-root .summary-goal.hit { color: var(--green-deep); font-weight: 700; }
+.legacy-root .settings-head { text-align: center; }
+.legacy-root .settings-head h2 { font-size: clamp(30px, 4.5vw, 44px); margin: 4px 0 0; }
+.legacy-root .settings-sub { color: var(--ink-mute); margin: 0 auto; max-width: 520px; text-align: left; }
+.legacy-root .rl-steps-card {
+  width: 100%; max-width: 480px; margin: 0 auto;
+  background: var(--ivory); border: 2px solid var(--ink); box-shadow: none;
+  padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;
+}
+.legacy-root .rl-step { display: flex; align-items: flex-start; gap: 14px; }
+.legacy-root .rl-step-num {
+  flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--ink); background: var(--lime); color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+}
+.legacy-root .rl-step-text { color: var(--ink); font-size: 15px; line-height: 1.45; padding-top: 3px; }
+.legacy-root .quick-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.legacy-root .check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.legacy-root .check {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--ivory); color: var(--ink); border: 2px solid var(--line); border-radius: 0;
+  padding: 10px 12px; cursor: pointer; user-select: none;
+  transition: border-color 0.12s ease;
+  position: relative;
+}
+.legacy-root .check:hover { border-color: var(--ink); }
+.legacy-root .check input { position: absolute; opacity: 0; }
+.legacy-root .check-box {
+  width: 18px; height: 18px; flex: 0 0 18px; border-radius: 0;
+  border: 2px solid var(--ink-mute); position: relative; transition: all 0.12s ease;
+}
+.legacy-root .check input:checked + .check-box { background: var(--felt); border-color: var(--felt); }
+.legacy-root .check input:checked + .check-box::after {
+  content: ""; position: absolute; left: 4px; top: 1px;
+  width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.legacy-root .check input:focus-visible + .check-box { outline: 3px solid var(--felt); outline-offset: 2px; }
+.legacy-root .check-text { font-size: 14px; font-weight: 600; display: flex; flex-direction: column; }
+.legacy-root .check-text em { font-style: normal; font-weight: 400; font-size: 11.5px; color: var(--ink-mute); }
+.legacy-root .check.inline { align-self: flex-start; }
+.legacy-root .settings-row { display: flex; align-items: center; gap: 16px; }
+.legacy-root .settings-label { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-mute); }
+.legacy-root .seg-btn.active { background: var(--card); color: var(--ink); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12); }
+.legacy-root .iv-modal-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(21, 15, 29, 0.6);
+  padding: 20px;
+  animation: ivModalFadeIn 0.15s ease-out;
+}
+@keyframes ivModalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.legacy-root .iv-modal {
+  width: 100%; max-width: 420px;
+  background: var(--ivory); color: var(--ink);
+  border: 2px solid var(--ink); box-shadow: var(--shadow-pop-lg);
+  padding: 24px; text-align: center;
+  animation: ivModalPopIn 0.15s ease-out;
+}
+@keyframes ivModalPopIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.legacy-root .iv-modal h3 { margin: 0 0 8px; font-size: 20px; }
+.legacy-root .iv-modal-sub { margin: 0 0 18px; font-size: 13.5px; color: var(--ink-mute); text-align: left; }
+.legacy-root .iv-modal-seg { display: flex; margin: 0 auto 18px; }
+.legacy-root .iv-modal-seg .seg-btn { flex: 1; }
+.legacy-root .iv-modal .num-row { justify-content: center; margin: 0 auto 18px; }
+.legacy-root .iv-modal .num-input { width: 64px; }
+.legacy-root .iv-modal .num-suffix { color: var(--ink-mute); }
+.legacy-root .level-list { display: grid; gap: 10px; }
+.legacy-root .level-card {
+  text-align: left; display: flex; flex-direction: column; gap: 4px;
+  background: var(--ivory); color: var(--ink); border: 2px solid var(--line); border-radius: 0;
+  padding: 16px 18px; transition: border-color 0.12s ease, background 0.12s ease;
+}
+.legacy-root .level-card:hover { border-color: var(--ink); }
+.legacy-root .level-card.active { border-color: var(--ink); background: var(--felt); color: var(--ivory); box-shadow: inset 4px 0 0 var(--lime); }
+.legacy-root .level-name { font-family: var(--font-display); font-weight: 700; font-size: 19px; }
+.legacy-root .level-blurb { font-size: 13.5px; color: var(--ink-mute); }
+.legacy-root .level-card.active .level-blurb { color: rgba(246, 236, 217, 0.88); }
+.legacy-root .settings-actions { display: flex; justify-content: center; gap: 12px; margin-top: 6px; }
+.legacy-root #reg-info-back-top { align-self: flex-start; }
+.legacy-root .settings-warn { color: var(--felt); font-weight: 600; font-size: 14px; }
+.legacy-root .notation-card {
+  background: var(--ivory); border: 2px solid var(--ink); border-radius: 0; padding: 6px 10px;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.5);
+}
+.legacy-root .notation-card svg { display: block; }
+.legacy-root .notation-card.empty { display: none; }
+.legacy-root .num-row { display: flex; align-items: center; gap: 12px; flex: 1; max-width: 420px; }
+.legacy-root .num-slider { flex: 1; accent-color: var(--felt); min-width: 120px; }
+.legacy-root .num-input {
+  width: 74px; padding: 8px 6px; text-align: center; font-size: 16px;
+  border: 2px solid var(--line); border-radius: 0; background: var(--ivory); color: var(--ink);
+}
+.legacy-root .num-input:focus { outline: none; border-color: var(--felt); }
+.legacy-root .num-suffix { font-size: 12.5px; color: var(--mist); white-space: nowrap; }

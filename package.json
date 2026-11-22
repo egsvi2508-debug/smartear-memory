@@ -1,0 +1,24 @@
+{
+  "name": "smartear-memory",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "deploy": "vite build && touch dist/.nojekyll && cd dist && rm -rf .git && git init -q -b gh-pages && git add -A && git commit -qm deploy && git push -f \"$(git -C .. remote get-url origin)\" gh-pages && rm -rf .git"
+  },
+  "dependencies": {
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/work-sans": "^5.3.0",
+    "@fontsource/space-mono": "^5.3.0",
+    "tone": "^15.1.22",
+    "vexflow": "^4.2.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6"
+  }
+}

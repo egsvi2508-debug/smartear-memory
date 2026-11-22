@@ -1,0 +1,139 @@
+/* tokens.css — the only place colours, type and spacing are defined.
+   One theme ("Hi-Fi": walnut, paper, amber LCD) in two modes: Day (paper)
+   and Night (console). Auto follows the system setting. */
+
+:root {
+  --font-display: "Fraunces Variable", "Fraunces", Georgia, serif;
+  --font-ui: "Work Sans Variable", "Work Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --fs-xxl: 32px;
+  --fs-xl: 24px;
+  --fs-lg: 20px;
+  --fs-md: 17px;
+  --fs-sm: 15px;
+  --fs-xs: 13px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 18px;
+  --header-h: 56px;
+  --dock-h: 64px;
+  --max-menu: 1080px;
+  --max-session: 720px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-fast: 150ms;
+  --t-med: 230ms;
+
+  /* Brand constants (both modes) */
+  --accent: #d9582a;
+  --accent-2: #b8451b;
+  --accent-ink: #fff4dc;
+  --gold: #e3a233;
+  --lcd: #ffb547;
+  --lcd-bg: #1a120c;
+  --teal: #2c7a74;
+  --walnut: #5a3520;
+  --walnut-2: #3b2213;
+  --paper-fixed: #fbf1da;
+  --ink-fixed: #2b1d14;
+
+  --reg-0: #2a78d6;
+  --reg-1: #eb6834;
+  --reg-2: #1baf7a;
+  --reg-3: #eda100;
+  --reg-4: #e87ba4;
+  --reg-5: #008300;
+  --reg-6: #4a3aa7;
+  --reg-7: #e34948;
+  --reg-8: #8d8173;
+
+  --area-pitch: #2a78d6;
+  --area-melody: #1baf7a;
+  --area-harmony: #9a5fd0;
+  --area-rhythm: #e4572e;
+  --area-voice: #e0679a;
+  --area-memory: #e3a233;
+}
+
+/* Day (paper) */
+:root,
+:root[data-mode="day"] {
+  --bg: #f1e2bf;
+  --bg-2: #e8d3a6;
+  --card: #fbf1da;
+  --card-2: #f4e6c4;
+  --ink: #2b1d14;
+  --ink-2: #4a3626;
+  --muted: #6e5640;
+  --line: #d6be90;
+  --line-2: #c4a874;
+  --good: #4e671b;
+  --good-bg: #e3ebc9;
+  --bad: #b8371f;
+  --bad-bg: #f6d6c8;
+  --focus: #d9582a;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 6px 18px rgba(43, 29, 20, 0.12);
+  --shadow-pop: 0 4px 0 var(--accent-2);
+  --overlay: rgba(43, 29, 20, 0.45);
+  --key-white: #fffaf0;
+  --key-black: #2b1d14;
+  color-scheme: light;
+}
+
+/* Night (console) */
+:root[data-mode="night"] {
+  --bg: #1d1511;
+  --bg-2: #160f0c;
+  --card: #2a1f19;
+  --card-2: #342720;
+  --ink: #f1e2bf;
+  --ink-2: #e2cfa6;
+  --muted: #b9a17e;
+  --line: #4d3a2c;
+  --line-2: #66503e;
+  --good: #9cc25a;
+  --good-bg: #2f3a1a;
+  --bad: #ec6a52;
+  --bad-bg: #45211a;
+  --focus: #ffb547;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 4px 0 #7a2c10;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --key-white: #f6ead0;
+  --key-black: #120c09;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-mode="auto"] {
+    --bg: #1d1511;
+    --bg-2: #160f0c;
+    --card: #2a1f19;
+    --card-2: #342720;
+    --ink: #f1e2bf;
+    --ink-2: #e2cfa6;
+    --muted: #b9a17e;
+    --line: #4d3a2c;
+    --line-2: #66503e;
+    --good: #9cc25a;
+    --good-bg: #2f3a1a;
+    --bad: #ec6a52;
+    --bad-bg: #45211a;
+    --focus: #ffb547;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-pop: 0 4px 0 #7a2c10;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --key-white: #f6ead0;
+    --key-black: #120c09;
+    color-scheme: dark;
+  }
+}
