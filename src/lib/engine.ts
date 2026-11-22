@@ -423,6 +423,18 @@ export function getDefaultTimbre(): Timbre {
   return defaultTimbre;
 }
 
+/** Called with the length (ms) of every question sound, so background music can step aside. */
+export const playListeners = new Set<(ms: number) => void>();
+function notifyPlay(ms: number) {
+  playListeners.forEach((f) => {
+    try {
+      f(ms);
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 export function playNotes(midis: number[], opts: PlayOpts = {}): ScheduleItem[] {
   const { mode = "harmonic", noteDur = 1.6, gap = 0.75, humanize = false, phrase = false, velocity = null } = opts;
   const timbre = opts.timbre ?? defaultTimbre;
@@ -439,7 +451,7 @@ export function playNotes(midis: number[], opts: PlayOpts = {}): ScheduleItem[] 
     phraseVel = midis.map((m, i) => Math.min(0.95, 0.6 + ((m - lo) / span) * 0.16 + Math.sin((i / (n - 1)) * Math.PI) * 0.14));
   }
   let cursor = 0;
-  return midis.map((m, i) => {
+  const out = midis.map((m, i) => {
     if (i > 0 && mode === "melodic") cursor += gap;
     const jitter = humanize ? (Math.random() - 0.5) * 0.024 : 0;
     const delay = Math.max(0, cursor + jitter);
@@ -447,6 +459,8 @@ export function playNotes(midis: number[], opts: PlayOpts = {}): ScheduleItem[] 
     schedule(now + delay, (t) => voice.trigger(m, noteDur, t, vel));
     return { midi: m, delayMs: (lead + delay) * 1000, durMs: noteDur * 1000 };
   });
+  notifyPlay(Math.max(0, ...out.map((x) => x.delayMs + x.durMs)));
+  return out;
 }
 
 /** A sequence of chords, cleanly separated. Returns total length in ms. */
@@ -672,6 +686,7 @@ export function stopExclusive() {
 }
 export function playNotesExclusive(midis: number[], { mode = "harmonic", noteDur = 1.6, gap = 0.75, velocity = 0.9 }: PlayOpts = {}) {
   stopExclusive();
+  notifyPlay(((mode === "harmonic" ? 0 : (midis.length - 1) * gap) + noteDur) * 1000);
   const gen = exclusiveGen;
   const voice = voiceFor(defaultTimbre);
   midis.forEach((m, i) => {

@@ -136,7 +136,7 @@ function savePrefs(key, prefs) {
  *   createRunner(ctx) → { startRound({ retry }), onKey(e) → bool, destroy() }
  * }
  */
-export function openMemoryGame(container, game, { onExit, rules } = {}) {
+export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}) {
   document.body.classList.add("mode-train");
   container.innerHTML = "";
   const root = el("div", `trainer mk mk-${game.id}`);
@@ -240,6 +240,7 @@ export function openMemoryGame(container, game, { onExit, rules } = {}) {
       });
       gear.addEventListener("click", () => settings.classList.toggle("open"));
     }
+    if (hudExtra) hud.appendChild(hudExtra);
 
     const card = el("div", "mk-card");
     const timer = el("div", "mk-timer");

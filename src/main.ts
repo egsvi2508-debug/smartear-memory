@@ -15,10 +15,11 @@ import "./styles/simple.css";
 import "./styles/site.css";
 
 import { loadVexFlow } from "./lib/vexflow";
-import { preloadPiano, stopAllSound, ensureAudio } from "./lib/engine";
+import { preloadPiano, stopAllSound, ensureAudio, playListeners } from "./lib/engine";
+import { unlockMusic, setMusicMode, duckMusic, musicOn, setMusicOn, onMusicChange } from "./lib/music";
 
 type Handle = { destroy?: () => void } | void;
-type Opener = (c: HTMLElement, o: { onExit: () => void; openModule: (id: string) => void; rules?: string[] }) => Handle;
+type Opener = (c: HTMLElement, o: { onExit: () => void; openModule: (id: string) => void; rules?: string[]; hudExtra?: HTMLElement }) => Handle;
 
 interface Game {
   id: string;
@@ -84,7 +85,9 @@ function showHome() {
     a.addEventListener("click", () => void ensureAudio().catch(() => {}));
     grid.append(a);
   });
-  main.append(logo, grid);
+  const head = el("div", "home-head");
+  head.append(logo, musicBtn);
+  main.append(head, grid);
   app.append(main);
   window.scrollTo(0, 0);
 }
@@ -102,14 +105,39 @@ async function showGame(game: Game) {
   if (my !== token) return;
   handle = mod.open(host, {
     rules: game.rules,
+    hudExtra: musicBtn,
     onExit: () => (location.hash = "#/"),
     openModule: (id: string) => (location.hash = `#/${id}`),
   });
 }
 
+// Background music: full track where you read, drums only where you listen.
+const READING = new Set(["note-rush", "visual-memory"]);
+function musicButton() {
+  const b = el("button", "music-btn");
+  b.type = "button";
+  const draw = (on: boolean) => {
+    b.classList.toggle("off", !on);
+    b.setAttribute("aria-label", on ? "Music on (tap to turn off)" : "Music off (tap to turn on)");
+    b.innerHTML = svg(on ? '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>' : '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M3 3l18 18"/>');
+  };
+  draw(musicOn());
+  onMusicChange(draw);
+  b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setMusicOn(!musicOn());
+  });
+  return b;
+}
+const musicBtn = musicButton();
+playListeners.add(duckMusic);
+// Browsers only allow sound after a tap or key press: start the music on the first one.
+for (const ev of ["pointerdown", "keydown"]) document.addEventListener(ev, () => unlockMusic(), { capture: true });
+
 function route() {
   const id = location.hash.replace(/^#\/?/, "").split("?")[0];
   const game = GAMES.find((g) => g.id === id);
+  setMusicMode(!game || READING.has(game.id) ? "full" : "beat");
   if (game) showGame(game);
   else showHome();
 }
