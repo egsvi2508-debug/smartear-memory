@@ -202,6 +202,7 @@ function createRunner(ctx) {
   let lastKey = null;
   let lastClef = null;
   let live = false;
+  let misses = 0; // Levels: wrong cards this round (a few are fine)
 
   function buildRound() {
     sp = spec(run.level);
@@ -283,10 +284,13 @@ function createRunner(ctx) {
     if (ci >= cards.length) {
       live = false;
       ctx.later(() => {
-        ctx.finishRound({ success: true });
+        ctx.finishRound({ success: misses <= allowedMisses() });
       }, 160);
     } else ctx.later(showCard, 110);
   }
+
+  /** Levels: move up if about 3 in 4 cards were right. */
+  const allowedMisses = () => Math.floor(cards.length / 4);
 
   function miss() {
     live = false;
@@ -310,6 +314,18 @@ function createRunner(ctx) {
     answer.className = "nr-answer show";
     playNotes(card.notes.map((n) => n.midi), { mode: "melodic", noteDur: 0.5, gap: 0.22 });
     const tip = `${names} · ${KEY_NAME[card.key]} · ${CLEF_NAME[card.clef]}`;
+    if (!ctx.streakMode) {
+      // Levels: a mistake doesn't stop you, the next card comes right away.
+      ctx.miss();
+      misses++;
+      ci++;
+      ctx.later(() => {
+        if (ci >= cards.length) return ctx.finishRound({ success: misses <= allowedMisses() });
+        live = true;
+        showCard();
+      }, 450);
+      return;
+    }
     ctx.later(() => {
       ctx.finishRound({ success: false, tip });
     }, 650);
@@ -323,6 +339,7 @@ function createRunner(ctx) {
       stopAllSound();
       unmute();
       ci = 0;
+      misses = 0;
       buildRound();
       ctx.setPhase("ready");
       ctx.splash(`Level ${run.level}`);

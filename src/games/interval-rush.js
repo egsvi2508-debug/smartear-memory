@@ -155,6 +155,8 @@ function createRunner(ctx) {
   let ci = 0;
   let token = 0;
   let live = false;
+  let misses = 0; // Levels: wrong cards this round (a few are fine)
+  const allowedMisses = () => Math.floor(cards.length / 4);
 
   function buildButtons() {
     grid.innerHTML = "";
@@ -245,7 +247,7 @@ function createRunner(ctx) {
     fx.burst(card, { count: 10 });
     ci++;
     if (ci >= cards.length) {
-      ctx.later(() => ctx.finishRound({ success: true }), 450);
+      ctx.later(() => ctx.finishRound({ success: misses <= allowedMisses() }), 450);
     } else ctx.later(showCard, 520);
   }
 
@@ -258,6 +260,14 @@ function createRunner(ctx) {
     buttons.get(c.semis)?.classList.add("want");
     showReveal(c, "bad");
     fx.kick(card, "shakeit", 450);
+    if (!ctx.streakMode) {
+      // Levels: a mistake doesn't stop you, the next card comes right away.
+      ctx.miss();
+      misses++;
+      ci++;
+      ctx.later(() => (ci >= cards.length ? ctx.finishRound({ success: misses <= allowedMisses() }) : showCard()), 650);
+      return;
+    }
     ctx.later(() => play(false), 250);
     const tip = `${IV[c.semis].long} · ${c.notes.map(noteName).join(" ")}`;
     ctx.later(() => ctx.finishRound({ success: false, tip, actions: [{ label: "Hear it", key: "h", onClick: () => play(false) }] }), 900);
@@ -271,6 +281,7 @@ function createRunner(ctx) {
       stopAllSound();
       sp = spec(run.level);
       ci = 0;
+      misses = 0;
       cards = [];
       let prev = null;
       for (let i = 0; i < sp.cards; i++) {
