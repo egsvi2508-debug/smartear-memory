@@ -275,7 +275,7 @@ body { min-height: 100dvh; }
 /* the rules box replaces the games' own grey hint lines */
 .mk-root.play .mk-hint, .mk-root.play .nr-hint { display: none !important; }
 
-/* music on/off: next to the logo, and in each game's top bar */
+/* settings button: next to the logo, and in each game's top bar */
 .home-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .music-btn {
   flex: 0 0 auto; width: 44px; height: 44px; border-radius: 12px; border: 0; cursor: pointer; display: grid; place-items: center;
@@ -284,9 +284,7 @@ body { min-height: 100dvh; }
 }
 .music-btn svg { width: 22px; height: 22px; }
 .music-btn:active { transform: scale(0.92); }
-.music-btn.off { background: var(--a-panel-2); color: var(--a-dim); }
 .mk-root.play .mk-hud .music-btn { width: 42px; height: 42px; }
-.mk-root.play .mk-hud .music-btn.off { background: rgba(11, 16, 38, 0.28); color: rgba(255, 255, 255, 0.75); }
 @media (max-width: 440px) {
   .mk-root.play .mk-hud { gap: 6px; padding: 6px; }
   .mk-root.play .mk-icon-btn, .mk-root.play .mk-hud .music-btn { width: 38px; height: 38px; flex-basis: 38px; }
@@ -340,7 +338,6 @@ body { min-height: 100dvh; }
 .snd-pop.open { display: flex; animation: snd-in 0.16s ease both; }
 @keyframes snd-in { from { opacity: 0; transform: translateY(-6px); } }
 .snd-top { display: flex; align-items: center; justify-content: space-between; }
-.snd-title { font-weight: 800; font-size: 17px; }
 .snd-toggle { min-width: 64px; height: 34px; border: 0; border-radius: 999px; font: inherit; font-weight: 800; cursor: pointer; background: var(--a-panel-2); color: var(--a-dim); }
 .snd-toggle.on { background: var(--a-yellow); color: var(--a-dark); }
 .snd-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; align-items: center; font-size: 14px; color: var(--a-dim); font-weight: 600; }
@@ -352,8 +349,6 @@ body { min-height: 100dvh; }
 .snd-range::-moz-range-track { height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--a-cyan) var(--p, 50%), var(--a-panel-2) var(--p, 50%)); }
 .snd-range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -7px; border-radius: 50%; background: var(--a-yellow); border: 3px solid var(--a-dark); }
 .snd-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--a-yellow); border: 3px solid var(--a-dark); }
-.snd-now { font-size: 12.5px; color: var(--a-dim); min-height: 16px; }
-.snd-now:empty { display: none; }
 .snd-skip { height: 38px; border-radius: 12px; border: 2px solid var(--a-line); background: var(--a-panel-2); color: var(--a-ink); font: inherit; font-weight: 700; cursor: pointer; }
 .snd-skip:hover { border-color: var(--a-cyan); }
 /* round over shows as a centred pop-up, so it is always on screen */
@@ -527,12 +522,7 @@ body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
 .snd-clean { gap: 10px; }
 .snd-clean .snd-name { font-size: 14px; color: var(--a-dim); font-weight: 600; }
 /* settings: a switch's name can be tapped too */
-.snd-top > .snd-title, .snd-clean > .snd-name { cursor: pointer; user-select: none; }
-/* settings: music style (Beats / Ambient) */
-.snd-style { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--a-panel-2); }
-.snd-style-btn { height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--a-dim); font: inherit; font-weight: 800; cursor: pointer; }
-.snd-style-btn:hover { color: var(--a-ink); }
-.snd-style-btn.on { background: var(--a-yellow); color: var(--a-dark); }
+.snd-clean > .snd-name { cursor: pointer; user-select: none; }
 /* ---- the beach behind the exercises ---- */
 .beach-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .beach-bg svg { width: 100%; height: 100%; display: block; }
