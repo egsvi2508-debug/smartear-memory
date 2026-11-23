@@ -165,18 +165,18 @@ function musicButton() {
   const top = el("div", "snd-top");
   const toggle = el("button", "snd-toggle");
   toggle.type = "button";
-  const skip = el("button", "snd-skip", "Next song");
+  const skip = el("button", "snd-skip", "Next rhythm");
   skip.type = "button";
   toggle.setAttribute("aria-label", "Music");
   const musicName = el("span", "snd-title", "Music");
   musicName.addEventListener("click", () => toggle.click()); // the name works as a switch too
   top.append(musicName, toggle);
-  // Style: Beats or Ambient (calm, no drums). Picking one also turns the music on.
+  // Background: beach waves, a basic rhythm, or both. Picking one also turns it on.
   const styleRow = el("div", "snd-style");
   styleRow.setAttribute("role", "radiogroup");
   styleRow.setAttribute("aria-label", "Music style");
-  const styleBtns = (["beats", "ambient"] as const).map((id) => {
-    const sb = el("button", "snd-style-btn", id === "beats" ? "Beats" : "Ambient");
+  const styleBtns = (["beach", "rhythm", "both"] as const).map((id) => {
+    const sb = el("button", "snd-style-btn", id === "beach" ? "Beach" : id === "rhythm" ? "Rhythm" : "Both");
     sb.type = "button";
     sb.setAttribute("role", "radio");
     sb.addEventListener("click", () => {
@@ -249,8 +249,7 @@ function musicButton() {
     toggle.textContent = on ? "On" : "Off";
     toggle.classList.toggle("on", on);
     toggle.setAttribute("aria-pressed", String(on));
-    const t = nowPlaying();
-    now.textContent = on && t ? `♪ ${t.title} · ${t.artist}` : "";
+    now.textContent = on ? `♪ ${nowPlaying()}` : "";
     for (const [id, sb] of styleBtns) {
       sb.classList.toggle("on", id === musicStyle());
       sb.setAttribute("aria-checked", String(id === musicStyle()));

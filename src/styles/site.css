@@ -529,7 +529,7 @@ body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
 /* settings: a switch's name can be tapped too */
 .snd-top > .snd-title, .snd-clean > .snd-name { cursor: pointer; user-select: none; }
 /* settings: music style (Beats / Ambient) */
-.snd-style { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--a-panel-2); }
+.snd-style { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--a-panel-2); }
 .snd-style-btn { height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--a-dim); font: inherit; font-weight: 800; cursor: pointer; }
 .snd-style-btn:hover { color: var(--a-ink); }
 .snd-style-btn.on { background: var(--a-yellow); color: var(--a-dark); }
