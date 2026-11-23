@@ -40,7 +40,7 @@ function privacy(body: HTMLElement) {
     h("h2", "Who runs this site"),
     p(`Human Ears is a free, non-commercial hobby project published by the GitHub user egsvi2508-debug. For any privacy question or request, [open an issue on GitHub](${CONTACT}).`),
     h("h2", "Stored on your device"),
-    p("Your browser's local storage keeps: your settings (keys, speed, game sound volume, clean screen), your level, best level, best streak and rounds for each game, and, if you join the board, your board name. This never leaves your device on its own. You can delete it below at any time."),
+    p("Your browser's local storage keeps: your settings (keys, speed, volumes, background sound), your level, best level, best streak and rounds for each game, and, if you join the board, your board name. This never leaves your device on its own. You can delete it below at any time."),
     h("h2", "The leaderboard (only if you join)"),
     p("Anyone can look at the top players. To show them, your browser loads the board from Google Firebase (Cloud Firestore, run by Google Ireland Ltd. and Google LLC), which, like any server, sees your IP address. That does not sign you in or store anything about you. If you tap Join the board, Firebase (Authentication and Cloud Firestore) is also used to:"),
     list([
@@ -109,6 +109,8 @@ function terms(body: HTMLElement) {
       "Entries that break these rules can be removed without notice.",
     ]),
     p("By joining the board you allow your chosen name and best scores to be shown publicly. You can leave at any time on the [Privacy page](#/privacy)."),
+    h("h2", "The background sound"),
+    p("The background sound (rhythms and beach waves) is free to use in your own videos and reels, no credit needed. Other parts of the site have their own licences, listed on the [Credits page](#/credits)."),
     h("h2", "Liability"),
     p("To the extent the law allows, the publisher is not liable for any loss arising from use of the site. Nothing here limits liability that cannot be limited by law, such as for intent or gross negligence."),
     h("h2", "Contact"),
@@ -117,7 +119,10 @@ function terms(body: HTMLElement) {
 }
 
 function credits(body: HTMLElement) {
+  const oga = "https://opengameart.org/content/";
   body.append(
+    h("h2", "Background sound"),
+    p("The rhythms are made live by this site's own code. The beach waves are public domain (CC0) recordings: [Beach Ocean Waves](https://opengameart.org/content/beach-ocean-waves) (Alki Beach, recorded by jasinski) and [Water Waves](https://opengameart.org/content/water-waves) (recorded by transitking), both cut by qubodup. The sea wash under them is made live too."),
     h("h2", "Piano"),
     p("[Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm, licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Samples as prepared by the Tone.js project, unchanged."),
     h("h2", "Fonts"),

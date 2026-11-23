@@ -20,6 +20,7 @@ import { openKeySettings } from "./lib/keys";
 import { getStats } from "./lib/stats";
 import { DOCS, renderDoc, type Doc } from "./legal";
 import { showBeach } from "./lib/beach";
+import { unlockMusic, musicOn, musicStyle, setMusicStyle, setMusicOn, onMusicChange, musicVolume, setMusicVolume, skipTrack, nowPlaying } from "./lib/music";
 
 type Handle = { destroy?: () => void } | void;
 type Opener = (c: HTMLElement, o: { name: string; onExit: () => void; openModule: (id: string) => void; rules?: string[]; hudExtra?: HTMLElement }) => Handle;
@@ -132,10 +133,9 @@ function readGameVol(): number {
 }
 setGameVolume(readGameVol());
 
-const GEAR_ICON =
-  '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/>';
+const NOTE_ICON = '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>';
 
-/** The settings button (top bar) and its panel: game sounds, keys, clean screen. */
+/** The sound button (top bar) and its panel: music on/off + volumes. */
 function musicButton() {
   const b = el("button", "music-btn");
   b.type = "button";
@@ -164,6 +164,31 @@ function musicButton() {
     row.append(name, pct, r);
     return row;
   };
+  const top = el("div", "snd-top");
+  const toggle = el("button", "snd-toggle");
+  toggle.type = "button";
+  const skip = el("button", "snd-skip", "Next rhythm");
+  skip.type = "button";
+  toggle.setAttribute("aria-label", "Music");
+  const musicName = el("span", "snd-title", "Music");
+  musicName.addEventListener("click", () => toggle.click()); // the name works as a switch too
+  top.append(musicName, toggle);
+  // Background: beach waves, a basic rhythm, or both. Picking one also turns it on.
+  const styleRow = el("div", "snd-style");
+  styleRow.setAttribute("role", "radiogroup");
+  styleRow.setAttribute("aria-label", "Music style");
+  const styleBtns = (["beach", "rhythm", "both"] as const).map((id) => {
+    const sb = el("button", "snd-style-btn", id === "beach" ? "Beach" : id === "rhythm" ? "Rhythm" : "Both");
+    sb.type = "button";
+    sb.setAttribute("role", "radio");
+    sb.addEventListener("click", () => {
+      setMusicStyle(id);
+      if (!musicOn()) setMusicOn(true);
+    });
+    styleRow.append(sb);
+    return [id, sb] as const;
+  });
+  const now = el("div", "snd-now");
   const keysBtn = el("button", "snd-skip snd-keys", "Keyboard keys");
   keysBtn.type = "button";
   keysBtn.addEventListener("click", () => {
@@ -201,6 +226,9 @@ function musicButton() {
   });
   drawClean();
   pop.append(
+    top,
+    styleRow,
+    slider("Music volume", musicVolume(), setMusicVolume),
     slider("Game sounds", readGameVol(), (v) => {
       setGameVolume(v);
       try {
@@ -209,12 +237,30 @@ function musicButton() {
         /* ignore */
       }
     }),
+    now,
+    skip,
     keysBtn,
     cleanRow,
   );
   document.body.append(pop);
 
-  b.innerHTML = svg(GEAR_ICON);
+  const draw = () => {
+    const on = musicOn();
+    b.classList.toggle("off", !on);
+    b.innerHTML = svg(on ? NOTE_ICON : NOTE_ICON + '<path d="M3 3l18 18"/>');
+    toggle.textContent = on ? "On" : "Off";
+    toggle.classList.toggle("on", on);
+    toggle.setAttribute("aria-pressed", String(on));
+    now.textContent = on ? `♪ ${nowPlaying()}` : "";
+    for (const [id, sb] of styleBtns) {
+      sb.classList.toggle("on", id === musicStyle());
+      sb.setAttribute("aria-checked", String(id === musicStyle()));
+    }
+  };
+  draw();
+  onMusicChange(draw);
+  toggle.addEventListener("click", () => setMusicOn(!musicOn()));
+  skip.addEventListener("click", () => skipTrack());
 
   const place = () => {
     const r = b.getBoundingClientRect();
@@ -246,6 +292,8 @@ function musicButton() {
   return b;
 }
 const musicBtn = musicButton();
+// Browsers only allow sound after a tap or key press: start the music on the first one.
+for (const ev of ["pointerdown", "keydown"]) document.addEventListener(ev, () => unlockMusic(), { capture: true });
 
 function showDoc(kind: Doc) {
   token++;
