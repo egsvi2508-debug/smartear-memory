@@ -19,6 +19,7 @@ import "./lib/keys-dialog";
 import { openKeySettings } from "./lib/keys";
 import { getStats } from "./lib/stats";
 import { DOCS, renderDoc, type Doc } from "./legal";
+import { showBeach } from "./lib/beach";
 import { unlockMusic, musicOn, musicStyle, setMusicStyle, setMusicOn, onMusicChange, musicVolume, setMusicVolume, skipTrack, nowPlaying } from "./lib/music";
 
 type Handle = { destroy?: () => void } | void;
@@ -107,6 +108,7 @@ async function showGame(game: Game) {
   const host = el("div", "legacy-root mk-root play");
   host.style.setProperty("--tint", game.tint);
   app.append(host);
+  showBeach(app);
   window.scrollTo(0, 0);
   document.title = `${game.name} · Human Ears`;
   const [, mod] = await Promise.all([loadVexFlow().catch(() => null), game.load()]);

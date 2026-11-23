@@ -533,3 +533,20 @@ body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
 .snd-style-btn { height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--a-dim); font: inherit; font-weight: 800; cursor: pointer; }
 .snd-style-btn:hover { color: var(--a-ink); }
 .snd-style-btn.on { background: var(--a-yellow); color: var(--a-dark); }
+/* ---- the beach behind the exercises ---- */
+.beach-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.beach-bg svg { width: 100%; height: 100%; display: block; }
+.beach-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 16, 38, 0.35), rgba(11, 16, 38, 0.15) 50%, rgba(11, 16, 38, 0.3)); }
+.mk-root.play { position: relative; z-index: 1; background: transparent !important; }
+.bh-swell { animation: bh-drift 14s linear infinite; }
+.bh-s2 { animation-duration: 9s; animation-direction: reverse; }
+.bh-wash { animation: bh-wash 7s ease-in-out infinite; transform-origin: 50% 100%; }
+.bh-glint { animation: bh-glint 4s ease-in-out infinite; }
+.bh-sun { animation: bh-glint 6s ease-in-out infinite; }
+@keyframes bh-drift { to { transform: translateX(240px); } }
+@keyframes bh-wash { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(26px); } }
+@keyframes bh-glint { 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .beach-bg * { animation: none !important; } }
+/* text that sits straight on the scene stays readable */
+.mk-root.play .mk-rules { background: rgba(11, 16, 38, 0.78); }
+.mk-root.play .mk-status, .mk-root.play .nr-hint { text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
