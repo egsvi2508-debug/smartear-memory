@@ -16,9 +16,9 @@
 // never sounds again until the answer. The strip carries no note names
 // while you search, only after the answer.
 
-import { pitchName } from "./theory.js";
-import { getNoteSystem } from "./settings.js";
-import { ensureAudioReady, playNotes, playNotesExclusive, stopAllSound } from "./audio.js";
+import { pitchName } from "../lib/theory";
+import { getNoteSystem } from "../lib/prefs";
+import { ensureAudioReady, playNotes, playNotesExclusive, stopAllSound } from "../lib/engine";
 import { openMemoryGame, el, randInt } from "./memory-kit.js";
 
 export const meta = {

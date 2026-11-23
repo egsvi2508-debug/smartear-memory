@@ -19,9 +19,9 @@
 // a time: every right note drops onto the staff in green, the first wrong
 // one ends the round.
 
-import { keySpelling, noteLabel } from "./theory.js";
-import { getNoteSystem } from "./settings.js";
-import { ensureAudioReady, playNotes, stopAllSound } from "./audio.js";
+import { keySpelling, noteLabel } from "../lib/theory";
+import { getNoteSystem } from "../lib/prefs";
+import { ensureAudioReady, playNotes, stopAllSound } from "../lib/engine";
 import { createStaffBoard, letterOf, midiOf, spelledOf } from "./staff-board.js";
 import { createPiano } from "./memory-inputs.js";
 import { noteFromKey, getScheme, renderKeysChoice } from "../lib/keys";
@@ -250,6 +250,11 @@ function createRunner(ctx) {
 
   function startRound({ retry }) {
     roundIndex++;
+    // Streak stays on one level: a new melody after each success, or the same one would come back every round.
+    if (ctx.streakMode && run.lastSuccess) {
+      maker = createMelodyMaker(rng);
+      melody = [];
+    }
     const desired = run.level + 2;
     while (melody.length < desired) melody.push(maker.next(run.level));
     if (melody.length > desired) melody = melody.slice(0, desired);

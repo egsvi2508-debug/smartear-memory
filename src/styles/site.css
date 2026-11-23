@@ -135,8 +135,6 @@ body { min-height: 100dvh; }
   color: var(--a-dark) !important; background: var(--a-yellow); border-radius: 8px; padding: 6px 10px;
   text-shadow: none !important; letter-spacing: 0 !important; white-space: nowrap;
 }
-.mk-root.play .mk-drawer { display: none; background: var(--a-panel); border: 2px solid var(--a-line); border-radius: 16px; padding: 14px; }
-.mk-root.play .mk-drawer.open { display: flex; }
 .mk-root.play .mk-seg-btn { background: var(--a-panel-2); border-color: var(--a-line); color: var(--a-ink); }
 .mk-root.play .mk-seg-btn.active { border-color: var(--a-yellow); background: rgba(255, 212, 0, 0.12); }
 .mk-root.play .mk-seg-btn.active .mk-seg-sub { color: var(--a-yellow); }
@@ -295,6 +293,24 @@ body { min-height: 100dvh; }
   .mk-root.play .mk-lvl-btn { width: 24px; }
   .mk-root.play .mk-hud-title { font-size: 16px; }
 }
+/* small phones: tighter bar so the full game name still fits */
+@media (max-width: 400px) {
+  .mk-root.play .mk-hud { gap: 4px; padding: 5px; }
+  .mk-root.play .mk-icon-btn, .mk-root.play .mk-hud .music-btn { width: 36px; height: 36px; flex-basis: 36px; }
+  .mk-root.play .mk-lvl { padding: 2px; gap: 0; }
+  .mk-root.play .mk-lvl-btn { width: 20px; }
+  .mk-root.play .mk-hud-level { font-size: 13px !important; padding: 5px 7px; }
+  .mk-root.play .mk-hud-title { font-size: 15px; letter-spacing: -0.01em; }
+}
+/* the Play again bar floats at the bottom: leave room so it never covers the rules */
+.mk-root.play .mk-run:has(.mk-tuck.show) { padding-bottom: 96px; }
+/* start pop-up closed before the first go: the card says what to do instead of sitting blank */
+.mk-root.play .mk-run[data-phase="intro"]:has(.mk-tuck.show) .mk-card::after {
+  content: "Ready? Hit Play"; position: absolute; inset: 0; display: grid; place-items: center;
+  font: 800 22px/1.2 var(--font-ui); color: var(--a-blue); letter-spacing: -0.01em; pointer-events: none;
+}
+/* Interval Rush: "Hear it" in that bar does what Replay does, so show just one */
+.mk-root.play .mk-run:has(.mk-tuck.show) .ir-replay { display: none; }
 
 /* round over: reached level + start from any level */
 .mk-root.play .mk-over { display: none; }
@@ -302,7 +318,7 @@ body { min-height: 100dvh; }
 .mk-root.play .mk-result.over .mk-next { display: none; }
 .mk-root.play .mk-result.over .mk-result-actions { justify-content: center; }
 .mk-root.play .mk-result.over .mk-result-actions:has(.mk-result-extra:empty) { display: none; }
-.mk-root.play .mk-result.over .mk-result-tip { text-align: center; color: var(--a-dim); font-weight: 600; }
+.mk-root.play .mk-result.over .mk-result-tip { text-align: center; color: var(--a-dim); font-weight: 600; padding: 0 34px; } /* clear of the × */
 .mk-root.play .mk-over-title { font-weight: 900; font-size: 30px; letter-spacing: -0.01em; color: var(--a-ink); text-transform: uppercase; }
 .mk-root.play .mk-over-sub { color: var(--a-yellow); font-weight: 700; font-size: 16px; }
 .mk-root.play .mk-over-pick { display: flex; align-items: center; gap: 6px; background: var(--a-panel-2); border-radius: 12px; padding: 4px 6px 4px 12px; }
@@ -355,7 +371,6 @@ body { min-height: 100dvh; }
 .mk-root.play .mk-streak { display: none; padding: 4px 10px; border-radius: 9px; background: var(--a-yellow); color: var(--a-dark); font-weight: 700; font-size: 15px; white-space: nowrap; }
 .mk-root.play .mk-streak.on { display: inline-block; }
 .mk-root.play .mk-streak.pop { animation: fx-level 0.4s cubic-bezier(0.2, 1.6, 0.4, 1); }
-.mk-root.play .mk-drawer { flex-direction: column; gap: 10px; }
 .mk-root.play .mk-choice { display: flex; flex-direction: column; gap: 6px; }
 .mk-root.play .mk-over .mk-choice { width: 100%; max-width: 280px; }
 .mk-root.play .mk-over .mk-seg { grid-template-columns: 1fr 1fr; }
@@ -443,10 +458,73 @@ body { min-height: 100dvh; }
 .mk-root.play .mk-tuck.show {
   display: flex; gap: 10px; align-items: center; position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 55;
   transform: translateX(-50%); animation: reopen-in 0.2s ease both;
+  /* never wider than the screen: on a phone the buttons wrap instead of running off the edge */
+  width: max-content; max-width: calc(100vw - 24px); flex-wrap: wrap; justify-content: center;
 }
-.mk-root.play .mk-tuck-extra { display: flex; gap: 8px; }
+.mk-root.play .mk-tuck-extra { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .mk-root.play .mk-tuck-extra:empty { display: none; }
 .mk-root.play .mk-tuck .mk-btn { min-height: 50px; font-size: 17px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); white-space: nowrap; }
 .mk-root.play .mk-tuck .mk-btn.ghost { background: var(--a-panel); border: 2px solid var(--a-cyan); color: var(--a-ink); }
 .mk-root.play .mk-over-reopen { min-width: 160px; justify-content: center; }
+@media (max-width: 480px) {
+  .mk-root.play .mk-tuck .mk-btn { font-size: 15px; padding: 0 14px; }
+  .mk-root.play .mk-over-reopen { min-width: 0; }
+}
 @keyframes reopen-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+
+/* ---- one type family: headings and stamps use the UI font (no serif download) ---- */
+:root { --font-display: var(--font-ui); }
+
+/* ---- home: tagline, your best on each tile, footer ---- */
+.home-tag { margin: -6px 0 18px; color: var(--a-dim); font-size: 15px; font-weight: 600; }
+.tile { position: relative; }
+.tile-best {
+  position: absolute; top: 10px; right: 10px; padding: 2px 8px; border-radius: 99px;
+  background: color-mix(in srgb, var(--tint) 18%, transparent); color: var(--tint); font-size: 12px; font-weight: 700;
+}
+.home-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin: 34px 0 8px; font-size: 13px; }
+.home-foot a { color: var(--a-dim); text-decoration: none; }
+.home-foot a:hover, .home-foot a:focus-visible { color: var(--a-ink); text-decoration: underline; }
+
+/* ---- Privacy / Terms / Credits ---- */
+.doc { max-width: 680px; margin: 0 auto; padding: 22px 16px 60px; color: var(--a-ink); font-family: var(--font-ui); line-height: 1.6; }
+.doc-back { display: inline-block; margin-bottom: 18px; color: var(--a-cyan); font-weight: 700; text-decoration: none; }
+.doc h1 { margin: 0; font-size: clamp(28px, 6vw, 38px); font-weight: 800; letter-spacing: -0.01em; }
+.doc-meta { margin: 4px 0 22px; color: var(--a-dim); font-size: 14px; }
+.doc h2 { margin: 28px 0 6px; font-size: 18px; font-weight: 800; color: var(--a-yellow); }
+.doc p, .doc li { color: #d4dbf5; font-size: 15.5px; }
+.doc p { margin: 0 0 10px; }
+.doc ul { margin: 0 0 10px; padding-left: 20px; }
+.doc li { margin-bottom: 4px; }
+.doc li::marker { color: var(--a-yellow); }
+.doc a { color: var(--a-cyan); }
+.doc-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 6px; }
+.doc-btn { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 2px solid var(--a-line); background: var(--a-panel-2); color: var(--a-ink); font: inherit; font-weight: 700; cursor: pointer; }
+.doc-btn:hover { border-color: var(--a-cyan); }
+.doc-btn:disabled { opacity: 0.6; cursor: progress; }
+.doc-status { color: var(--a-dim) !important; font-size: 14px !important; min-height: 22px; }
+
+/* ---- strip: share, join ---- */
+.hx-board-h { display: flex; align-items: center; justify-content: space-between; }
+.hx-share {
+  border: 0; border-radius: 99px; padding: 3px 12px; background: color-mix(in srgb, var(--tint, #ffd400) 18%, transparent); color: var(--tint, #ffd400);
+  font: 700 12px var(--font-ui); letter-spacing: 0; text-transform: none; cursor: pointer;
+}
+.hx-share:hover { filter: brightness(1.2); }
+.hx-share[hidden] { display: none; }
+.hx-you { flex-wrap: wrap; }
+.hx-join { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
+.hx-join .hx-name-in { flex: 1 1 140px; width: auto; height: 36px; }
+.hx-join-btn { height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--a-yellow); color: var(--a-dark); font: 800 14px var(--font-ui); cursor: pointer; }
+.hx-link { border: 0; background: none; color: var(--a-dim); font: inherit; text-decoration: underline; cursor: pointer; }
+.hx-note { flex-basis: 100%; font-size: 12px; color: var(--a-dim); }
+.hx-note.bad { color: var(--a-bad); }
+.hx-note a { color: var(--a-cyan); }
+.hx-you > .hx-join-btn + .hx-note { flex-basis: auto; flex: 1; }
+
+/* ---- clean screen (for recording): only the game ---- */
+body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
+.snd-clean { gap: 10px; }
+.snd-clean .snd-name { font-size: 14px; color: var(--a-dim); font-weight: 600; }
+/* settings: a switch's name can be tapped too */
+.snd-top > .snd-title, .snd-clean > .snd-name { cursor: pointer; user-select: none; }

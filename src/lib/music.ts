@@ -91,7 +91,12 @@ function setup(): boolean {
   audio = new Audio();
   audio.preload = "auto";
   audio.addEventListener("ended", onEnded);
-  audio.addEventListener("error", () => setTimeout(nextTrack, 500));
+  // A track that fails to load is skipped; after a few failures in a row (offline), stop trying.
+  let fails = 0;
+  audio.addEventListener("playing", () => (fails = 0));
+  audio.addEventListener("error", () => {
+    if (++fails <= 4) setTimeout(nextTrack, 500 * fails);
+  });
   const src = ac.createMediaElementSource(audio);
   gain = ac.createGain();
   gain.gain.value = level();
@@ -105,7 +110,7 @@ function setup(): boolean {
 export function unlockMusic() {
   if (!enabled || !setup()) return;
   if (ac!.state !== "running") ac!.resume().catch(() => {});
-  if (current < 0) nextTrack();
+  if (current < 0 || audio!.error) nextTrack(); // first tap, or try again after loading failed
   else if (audio!.paused) audio!.play().catch(() => {});
 }
 
@@ -158,7 +163,7 @@ export function onMusicChange(f: () => void) {
 }
 
 /** Dev/testing. */
-export function musicState() {
+function musicState() {
   return { state: ac?.state ?? "none", playing: !!audio && !audio.paused, track: nowPlaying()?.title ?? null, gain: gain ? Math.round(gain.gain.value * 100) / 100 : null, mode, enabled, volume };
 }
 

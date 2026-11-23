@@ -3,7 +3,7 @@
 // carried-over notation modules (rhythm staff, memory staff board) expect.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Flow = any;
+type Flow = any;
 
 let loading: Promise<Flow> | null = null;
 let flow: Flow | null = null;
@@ -20,5 +20,3 @@ export function loadVexFlow(): Promise<Flow> {
   }
   return loading;
 }
-
-export const vexFlow = () => flow;

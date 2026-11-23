@@ -11,8 +11,8 @@
 // "finger down" to "finger up", which is exactly where a misclick can
 // still be fixed.
 
-import { noteLabel, pitchName } from "./theory.js";
-import { getNoteSystem } from "./settings.js";
+import { noteLabel, pitchName } from "../lib/theory";
+import { getNoteSystem } from "../lib/prefs";
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -28,9 +28,6 @@ const CANCEL_MARGIN = 44; // px beyond the keyboard's edge that cancels an aim
 function isBlack(midi) {
   return [1, 3, 6, 8, 10].includes(((midi % 12) + 12) % 12);
 }
-
-/** GarageBand-style "musical typing": home row = white keys from C4. */
-export const MUSICAL_TYPING = { a: 60, w: 61, s: 62, e: 63, d: 64, f: 65, t: 66, g: 67, y: 68, h: 69, u: 70, j: 71, k: 72, o: 73, l: 74, p: 75, ";": 76, "'": 77 };
 
 /** Plain name for a piano key (sharps for black keys), in the user's system. */
 export function keyName(m) {

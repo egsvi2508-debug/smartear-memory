@@ -9,9 +9,9 @@
 // Built on memory-kit.
 
 import { createPiano } from "./memory-inputs.js";
-import { playNotes, stopAllSound, unmute } from "./audio.js";
-import { noteLabel } from "./theory.js";
-import { getNoteSystem } from "./settings.js";
+import { playNotes, stopAllSound, unmute } from "../lib/engine";
+import { noteLabel } from "../lib/theory";
+import { getNoteSystem } from "../lib/prefs";
 import { openMemoryGame, el, pick, randInt } from "./memory-kit.js";
 import { noteFromKey, keysHint, renderKeysChoice } from "../lib/keys";
 
@@ -281,12 +281,16 @@ function createRunner(ctx) {
     cardEl.classList.add("out");
     fx.burst(cardEl, { count: 10, kind: "good" });
     ci++;
+    live = false; // no answers until the next card is up
     if (ci >= cards.length) {
-      live = false;
       ctx.later(() => {
-        ctx.finishRound({ success: misses <= allowedMisses() });
+        ctx.finishRound({ success: misses <= allowedMisses(), misses });
       }, 160);
-    } else ctx.later(showCard, 110);
+    } else
+      ctx.later(() => {
+        live = true;
+        showCard();
+      }, 110);
   }
 
   /** Levels: move up if about 3 in 4 cards were right. */
@@ -320,7 +324,7 @@ function createRunner(ctx) {
       misses++;
       ci++;
       ctx.later(() => {
-        if (ci >= cards.length) return ctx.finishRound({ success: misses <= allowedMisses() });
+        if (ci >= cards.length) return ctx.finishRound({ success: misses <= allowedMisses(), misses });
         live = true;
         showCard();
       }, 450);

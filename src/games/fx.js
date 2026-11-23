@@ -13,7 +13,7 @@ function node(tag, cls, text) {
 }
 
 /** The effects layer inside a card (created once). */
-export function layerOf(host) {
+function layerOf(host) {
   let l = host.querySelector(":scope > .fx-layer");
   if (!l) {
     l = node("div", "fx-layer");
@@ -68,13 +68,6 @@ export function burst(host, { x = 0.5, y = 0.5, count = 22, kind = "good", glyph
   }
 }
 
-/** "+120" rising from an element (e.g. the HUD score). */
-export function floatText(anchor, text, kind = "good") {
-  const f = node("div", `fx-float ${kind}`, text);
-  anchor.appendChild(f);
-  selfRemove(f, 1000);
-}
-
 /** Restart a CSS animation class on an element. */
 export function kick(elm, cls, ms = 600) {
   if (!elm) return;
@@ -84,23 +77,8 @@ export function kick(elm, cls, ms = 600) {
   if (ms) setTimeout(() => elm.classList.remove(cls), ms);
 }
 
-/** Count a number up in an element (formatted with fmt). */
-export function countTo(elm, from, to, fmt, ms = 520) {
-  if (reduced() || from === to) {
-    elm.textContent = fmt(to);
-    return;
-  }
-  const t0 = performance.now();
-  const step = (now) => {
-    const p = Math.min(1, (now - t0) / ms);
-    elm.textContent = fmt(from + (to - from) * (1 - Math.pow(1 - p, 3)));
-    if (p < 1 && elm.isConnected) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-}
-
 /** A sweeping banner across the card for streak milestones. */
-export function banner(host, title, sub) {
+function banner(host, title, sub) {
   const l = layerOf(host);
   const b = node("div", "fx-banner");
   b.append(node("div", "fx-banner-title", title));

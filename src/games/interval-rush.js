@@ -7,9 +7,9 @@
 //
 // Built on memory-kit.
 
-import { ensureAudioReady, playNotes, stopAllSound, unmute, scheduleLength, Tone } from "./audio.js";
-import { noteLabel } from "./theory.js";
-import { getNoteSystem } from "./settings.js";
+import { ensureAudioReady, playNotes, stopAllSound, unmute, scheduleLength, Tone } from "../lib/engine";
+import { noteLabel } from "../lib/theory";
+import { getNoteSystem } from "../lib/prefs";
 import { openMemoryGame, el, pick, randInt } from "./memory-kit.js";
 
 const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
@@ -146,7 +146,8 @@ function createRunner(ctx) {
   controls.appendChild(grid);
   const foot = el("div", "ir-foot");
   const replay = el("button", "mk-btn ghost ir-replay", "Replay");
-  replay.addEventListener("click", () => play(false));
+  // Only while a card is being answered: between cards it would play the next one early.
+  replay.addEventListener("click", () => live && play(false));
   foot.append(replay);
   controls.appendChild(foot);
 
@@ -247,7 +248,7 @@ function createRunner(ctx) {
     fx.burst(card, { count: 10 });
     ci++;
     if (ci >= cards.length) {
-      ctx.later(() => ctx.finishRound({ success: misses <= allowedMisses() }), 450);
+      ctx.later(() => ctx.finishRound({ success: misses <= allowedMisses(), misses }), 450);
     } else ctx.later(showCard, 520);
   }
 
@@ -265,7 +266,7 @@ function createRunner(ctx) {
       ctx.miss();
       misses++;
       ci++;
-      ctx.later(() => (ci >= cards.length ? ctx.finishRound({ success: misses <= allowedMisses() }) : showCard()), 650);
+      ctx.later(() => (ci >= cards.length ? ctx.finishRound({ success: misses <= allowedMisses(), misses }) : showCard()), 650);
       return;
     }
     ctx.later(() => play(false), 250);
@@ -304,7 +305,7 @@ function createRunner(ctx) {
     onKey(e) {
       if (e.repeat) return false;
       if (e.key === " ") {
-        if (cards[ci] && ctx.phase === "play") play(false);
+        if (live && ctx.phase === "play") play(false);
         return true;
       }
       const s = SEMIS_OF_KEY[e.key];

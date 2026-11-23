@@ -10,10 +10,3 @@ export function getNoteSystem(): NoteSystem {
   }
   return "letter";
 }
-export function setNoteSystem(v: NoteSystem) {
-  try {
-    localStorage.setItem(KEY, v);
-  } catch {
-    /* storage blocked */
-  }
-}

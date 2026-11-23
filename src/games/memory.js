@@ -20,9 +20,9 @@
 // Some notes are chromatic passing tones. The first melody stays written on
 // the staff as the anchor; if you hear a change, tap the note.
 
-import { MAJOR_SCALE, keySpelling, noteLabel } from "./theory.js";
-import { getNoteSystem } from "./settings.js";
-import { ensureAudioReady, playNotes, stopAllSound } from "./audio.js";
+import { MAJOR_SCALE, keySpelling, noteLabel } from "../lib/theory";
+import { getNoteSystem } from "../lib/prefs";
+import { ensureAudioReady, playNotes, stopAllSound } from "../lib/engine";
 import { createStaffBoard, spelledOf, spellMidi } from "./staff-board.js";
 import { openMemoryGame, el, pick, weightedPick } from "./memory-kit.js";
 
@@ -347,11 +347,13 @@ function createRunner(ctx, transposed) {
     ctx.status("Same melody, or did a note change?");
   }
 
-  function startSelect() {
+  function startSelect(fromKey = false) {
     if (ctx.phase !== "judge") return;
     ctx.setPhase("select");
     selCursor = 0;
     board.setInteractive("select");
+    // From the keyboard, show where Enter would pick (taps choose directly, so no pre-pick there).
+    if (fromKey === true) board.setActiveColumn(0);
     ctx.status("Which note changed?");
   }
   function backToJudge() {
@@ -441,7 +443,7 @@ function createRunner(ctx, transposed) {
       const k = e.key.toLowerCase();
       if (ctx.phase === "judge") {
         if (k === "s") return grade(false), true;
-        if (k === "c" || k === "d") return startSelect(), true;
+        if (k === "c" || k === "d") return startSelect(true), true;
         return false;
       }
       if (ctx.phase === "select") {

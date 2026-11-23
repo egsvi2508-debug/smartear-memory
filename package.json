@@ -11,7 +11,6 @@
     "deploy": "vite build && touch dist/.nojekyll && cd dist && rm -rf .git && git init -q -b gh-pages && git add -A && git commit -qm deploy && git push -f \"$(git -C .. remote get-url origin)\" gh-pages && rm -rf .git"
   },
   "dependencies": {
-    "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/work-sans": "^5.3.0",
     "@fontsource/space-mono": "^5.3.0",
     "firebase": "^12.19.0",

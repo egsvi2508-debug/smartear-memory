@@ -25,11 +25,7 @@
 
 export const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
 const LETTER_PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-export const MIDDLE_C_D = 28;
-
-export function isLine(d) {
-  return ((d % 2) + 2) % 2 === 0;
-}
+const MIDDLE_C_D = 28;
 export function letterOf(d) {
   return LETTERS[((d % 7) + 7) % 7];
 }
@@ -38,9 +34,6 @@ export function midiOf({ d, alter }) {
 }
 export function spelledOf({ d, alter }) {
   return { letter: letterOf(d), alter, octave: Math.floor(d / 7) };
-}
-export function pcOf(n) {
-  return ((midiOf(n) % 12) + 12) % 12;
 }
 /** Spell a midi number as a staff position, preferring the key's own
  *  spelling (alterOf: letter → alter from theory.keySpelling); notes outside

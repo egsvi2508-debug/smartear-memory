@@ -23,7 +23,7 @@ function keyLabel(e: KeyboardEvent): string {
 
 let open = false;
 
-export function showKeysDialog() {
+function showKeysDialog() {
   if (open) return;
   open = true;
   const back = el("div", "keys-back");

@@ -7,25 +7,15 @@
 //
 // All playback is scheduled on the audio clock and returns a schedule
 // [{midi, delayMs, durMs}] the UI uses to light keys and notes in sync.
-// The function names mirror the original app's audio.js so the carried-over
+// The function names mirror the original SmartEar app's audio module so the carried-over
 // modules (memory games, rhythm, register…) keep working unchanged.
 
 import * as Tone from "tone";
 const signal = <T,>(value: T) => ({ value });
 
-export type Timbre = "piano" | "epiano" | "organ" | "strings" | "guitar" | "synth" | "choir" | "bass" | OrchestralTimbre;
+type Timbre = "piano" | "epiano" | "organ" | "strings" | "guitar" | "synth" | "choir" | "bass" | OrchestralTimbre;
 /** Synthesized orchestral colours (Timbre ID); not offered as the default instrument. */
-export type OrchestralTimbre = "flute" | "clarinet" | "brass" | "violin" | "cello" | "marimba";
-export const TIMBRES: { id: Timbre; name: string }[] = [
-  { id: "piano", name: "Piano" },
-  { id: "epiano", name: "Electric piano" },
-  { id: "guitar", name: "Guitar" },
-  { id: "strings", name: "Strings" },
-  { id: "organ", name: "Organ" },
-  { id: "choir", name: "Choir" },
-  { id: "synth", name: "Synth" },
-  { id: "bass", name: "Bass" },
-];
+type OrchestralTimbre = "flute" | "clarinet" | "brass" | "violin" | "cello" | "marimba";
 
 export const pianoReady = signal(false);
 export const audioUnlocked = signal(false);
@@ -45,7 +35,7 @@ function chain(): Tone.Volume {
   return master;
 }
 
-export function setMasterVolume(db: number) {
+function setMasterVolume(db: number) {
   masterDb = db;
   if (master) master.volume.value = db;
   if (fxBus) fxBus.volume.value = -6 + db;
@@ -55,13 +45,10 @@ export function setGameVolume(v: number) {
   const x = Math.max(0, Math.min(1, v));
   setMasterVolume(x <= 0.001 ? -Infinity : 20 * Math.log10(x));
 }
-export function setFeedbackSounds(on: boolean) {
-  feedbackOn = on;
-}
 
 // ---------------------------------------------------------------------------
-// Piano (Salamander Grand, CC-BY Alexander Holm) — a sample every minor 3rd.
-// Fetched from the Tone.js CDN; the service worker caches it for offline use.
+// Piano (Salamander Grand, CC BY 3.0 Alexander Holm): a sample every minor 3rd.
+// Served from this site (public/piano), so no other server is contacted.
 // ---------------------------------------------------------------------------
 const SALAMANDER: Record<string, string> = {};
 for (let oct = 0; oct <= 7; oct++) {
@@ -83,7 +70,7 @@ function createPiano(): Promise<void> {
     pianoPromise = new Promise<void>((resolve) => {
       piano = new Tone.Sampler({
         urls: SALAMANDER,
-        baseUrl: "https://tonejs.github.io/audio/salamander/",
+        baseUrl: (import.meta.env.BASE_URL || "./").replace(/\/?$/, "/") + "piano/",
         release: 1,
         onload: () => {
           pianoReady.value = true;
@@ -116,7 +103,6 @@ export async function ensureAudio(): Promise<void> {
   await Promise.race([createPiano(), new Promise((r) => setTimeout(r, 8000))]);
 }
 export const ensureAudioReady = ensureAudio;
-export const isAudioLoaded = () => pianoReady.value;
 
 // ---------------------------------------------------------------------------
 // Other timbres — synthesized, no downloads, no licences.
@@ -374,7 +360,7 @@ export function schedule(time: number, fire: (t: number) => void) {
 }
 
 /** Forget everything scheduled that hasn't sounded yet. */
-export function cancelScheduled() {
+function cancelScheduled() {
   queue = [];
   if (pumpTimer) {
     clearInterval(pumpTimer);
@@ -382,34 +368,15 @@ export function cancelScheduled() {
   }
 }
 
-/** The instrument bus (for extra sound sources such as drums and noise). */
-export function masterOut(): Tone.Volume {
-  return chain();
-}
-
-let insert: Tone.ToneAudioNode[] | null = null;
-/** Put processing (EQ Ears) between the instruments and the limiter; null removes it. */
-export function setMasterInsert(nodes: Tone.ToneAudioNode[] | null) {
-  const m = chain();
-  m.disconnect();
-  if (insert) insert.forEach((n) => n.disconnect());
-  insert = nodes && nodes.length ? nodes : null;
-  if (insert) {
-    m.connect(insert[0]);
-    for (let i = 0; i < insert.length - 1; i++) insert[i].connect(insert[i + 1]);
-    insert[insert.length - 1].connect(limiter!);
-  } else m.connect(limiter!);
-}
-
 // ---------------------------------------------------------------------------
 // Playback
 // ---------------------------------------------------------------------------
-export interface ScheduleItem {
+interface ScheduleItem {
   midi: number;
   delayMs: number;
   durMs: number;
 }
-export interface PlayOpts {
+interface PlayOpts {
   mode?: "harmonic" | "melodic";
   noteDur?: number;
   gap?: number;
@@ -422,12 +389,6 @@ export interface PlayOpts {
 }
 
 let defaultTimbre: Timbre = "piano";
-export function setDefaultTimbre(t: Timbre) {
-  defaultTimbre = t;
-}
-export function getDefaultTimbre(): Timbre {
-  return defaultTimbre;
-}
 
 /** Called with the length (ms) of every question sound, so background music can step aside. */
 export const playListeners = new Set<(ms: number) => void>();
@@ -467,71 +428,6 @@ export function playNotes(midis: number[], opts: PlayOpts = {}): ScheduleItem[] 
   });
   notifyPlay(Math.max(0, ...out.map((x) => x.delayMs + x.durMs)));
   return out;
-}
-
-/** A sequence of chords, cleanly separated. Returns total length in ms. */
-export function playChords(chords: number[][], { dur = 1, gap = 0.9, velocity = 0.8, timbre }: { dur?: number; gap?: number; velocity?: number; timbre?: Timbre } = {}): number {
-  if (!audioUnlocked.value) return 0;
-  const voice = voiceFor(timbre ?? defaultTimbre);
-  const start = Tone.now() + 0.05;
-  chords.forEach((c, i) => schedule(start + i * gap, (t) => c.forEach((m) => voice.trigger(m, dur, t, velocity))));
-  return ((chords.length - 1) * gap + dur) * 1000 + 50;
-}
-
-/** Multi-voice score: each track is [{beat, durBeats, midi}]. */
-export function playScore(tracks: { beat: number; durBeats: number; midi: number }[][], { bpm = 92, timbre }: { bpm?: number; timbre?: Timbre } = {}) {
-  if (!audioUnlocked.value) return;
-  const voice = voiceFor(timbre ?? defaultTimbre);
-  const spb = 60 / bpm;
-  const now = Tone.now() + 0.05;
-  tracks.forEach((track) =>
-    track.forEach(({ beat, durBeats, midi }) => schedule(now + beat * spb, (t) => voice.trigger(midi, Math.max(0.05, durBeats * spb * 0.95), t, 0.8))),
-  );
-}
-
-export interface TimedNote {
-  midi: number;
-  /** Start, in beats (or seconds when bpm = 60). */
-  beat: number;
-  /** Length in beats. */
-  dur: number;
-  velocity?: number;
-}
-
-/** Notes with their own onsets and lengths (melodies with rhythm, chords
- *  under a tune). Returns the schedule for lighting keys/notes. */
-export function playTimed(notes: TimedNote[], { bpm = 90, timbre, legato = 0.95, at = 0.05 }: { bpm?: number; timbre?: Timbre; legato?: number; at?: number } = {}): ScheduleItem[] {
-  if (!audioUnlocked.value) return [];
-  const voice = voiceFor(timbre ?? defaultTimbre);
-  const spb = 60 / bpm;
-  const now = Tone.now() + at;
-  return notes.map((n) => {
-    const dur = Math.max(0.05, n.dur * spb * legato);
-    schedule(now + n.beat * spb, (t) => voice.trigger(n.midi, dur, t, n.velocity ?? 0.85));
-    return { midi: n.midi, delayMs: (at + n.beat * spb) * 1000, durMs: dur * 1000 };
-  });
-}
-
-/** A wash of filtered noise (Note ID: erases the memory of the last pitch). */
-export function playNoiseWash(seconds = 1.8) {
-  if (!audioUnlocked.value) return;
-  const out = chain();
-  const filter = new Tone.Filter({ type: "bandpass", frequency: 400, Q: 0.6 }).connect(out);
-  const noise = new Tone.Noise("pink");
-  const gain = new Tone.Gain(0).connect(filter);
-  noise.connect(gain);
-  const t0 = Tone.now() + 0.03;
-  noise.start(t0);
-  gain.gain.setValueAtTime(0, t0);
-  gain.gain.linearRampToValueAtTime(0.32, t0 + 0.25);
-  gain.gain.setValueAtTime(0.32, t0 + seconds - 0.5);
-  gain.gain.linearRampToValueAtTime(0, t0 + seconds);
-  filter.frequency.setValueAtTime(250 + Math.random() * 300, t0);
-  filter.frequency.exponentialRampToValueAtTime(1500 + Math.random() * 2500, t0 + seconds * 0.6);
-  filter.frequency.exponentialRampToValueAtTime(300 + Math.random() * 400, t0 + seconds);
-  noise.stop(t0 + seconds + 0.05);
-  washNodes.push(noise, gain, filter);
-  setTimeout(() => disposeWash([noise, gain, filter]), (seconds + 0.3) * 1000);
 }
 let washNodes: Tone.ToneAudioNode[] = [];
 function disposeWash(nodes: Tone.ToneAudioNode[] = washNodes) {
@@ -586,20 +482,10 @@ function bell(steps: number[], gap: number, vel: number) {
 export function playCorrectFx() {
   bell([0, 7], 0.075, 0.75);
 }
-/** A bigger win (a whole phrase right): a quick rising major arpeggio. */
-export function playRewardFx() {
-  bell([0, 4, 7, 12], 0.065, 0.85);
-}
 export function playWrongFx() {
   if (!feedbackOn || !audioUnlocked.value) return;
   ensureFx();
   fxThud!.triggerAttackRelease(0.1, Tone.now());
-}
-export const playWrongFxAlt = playWrongFx;
-export function playDragTickFx() {
-  if (!feedbackOn || !audioUnlocked.value) return;
-  ensureFx();
-  fxTick!.triggerAttackRelease(0.015, Tone.now(), 0.3);
 }
 
 // ---------------------------------------------------------------------------
@@ -608,19 +494,7 @@ export function playDragTickFx() {
 let woodHi: Tone.NoiseSynth | null = null;
 let woodLo: Tone.NoiseSynth | null = null;
 let loFilter: Tone.Filter | null = null;
-
-export async function ensureClickReady() {
-  await Tone.start();
-  Tone.getDestination().mute = false;
-  audioUnlocked.value = true;
-  const out = chain();
-  if (!woodHi) {
-    woodHi = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.028, sustain: 0, release: 0.01 }, volume: -8 }).connect(out);
-    loFilter = new Tone.Filter(1800, "lowpass").connect(out);
-    woodLo = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.045, sustain: 0, release: 0.015 }, volume: -13 }).connect(loFilter);
-  }
-}
-export function stopAllClicks() {
+function stopAllClicks() {
   for (const n of [woodHi, woodLo, loFilter]) {
     try {
       n?.dispose();
@@ -636,31 +510,14 @@ export function tick(time: number, kind: "hi" | "lo" | "acc" = "hi") {
   if (kind === "lo") woodLo.triggerAttackRelease(0.045, time, 0.7);
   else woodHi.triggerAttackRelease(0.03, time, kind === "acc" ? 1 : 0.75);
 }
-export function audioNow(): number {
-  return Tone.now();
-}
 
 // ---------------------------------------------------------------------------
 // Beat Lab voices
 // ---------------------------------------------------------------------------
-export const BEAT_SOUNDS = ["click", "thump", "beep", "snap"] as const;
+const BEAT_SOUNDS = ["click", "thump", "beep", "snap"] as const;
 type BeatVoices = Record<(typeof BEAT_SOUNDS)[number], Tone.NoiseSynth | Tone.MembraneSynth | Tone.Synth>;
 let beatVoices: BeatVoices | null = null;
-export async function ensureBeatVoicesReady() {
-  await Tone.start();
-  Tone.getDestination().mute = false;
-  audioUnlocked.value = true;
-  const out = chain();
-  if (!beatVoices) {
-    beatVoices = {
-      click: new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.0003, decay: 0.03, sustain: 0, release: 0.01 }, volume: -6 }).connect(out),
-      thump: new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, envelope: { attack: 0.001, decay: 0.25, sustain: 0, release: 0.1 }, volume: -4 }).connect(out),
-      beep: new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.002, decay: 0.08, sustain: 0, release: 0.05 }, volume: -10 }).connect(out),
-      snap: new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.0002, decay: 0.012, sustain: 0, release: 0.005 }, volume: -3 }).connect(out),
-    };
-  }
-}
-export function disposeBeatVoices() {
+function disposeBeatVoices() {
   if (!beatVoices) return;
   Object.values(beatVoices).forEach((v) => {
     try {
@@ -671,20 +528,13 @@ export function disposeBeatVoices() {
   });
   beatVoices = null;
 }
-export function playBeatSound(name: string, time: number) {
-  const v = beatVoices?.[name as keyof BeatVoices];
-  if (!v) return;
-  if (name === "thump") (v as Tone.MembraneSynth).triggerAttackRelease("C2", 0.12, time);
-  else if (name === "beep") (v as Tone.Synth).triggerAttackRelease("A4", 0.08, time);
-  else (v as Tone.NoiseSynth).triggerAttackRelease(0.03, time);
-}
 
 // ---------------------------------------------------------------------------
 // Exclusive playback (Duels): a new play cancels the previous one.
 // ---------------------------------------------------------------------------
 let exclusiveGen = 0;
 let exclusiveTimers: ReturnType<typeof setTimeout>[] = [];
-export function stopExclusive() {
+function stopExclusive() {
   exclusiveGen += 1;
   exclusiveTimers.forEach(clearTimeout);
   exclusiveTimers = [];
@@ -705,20 +555,6 @@ export function playNotesExclusive(midis: number[], { mode = "harmonic", noteDur
     );
   });
 }
-
-// ---------------------------------------------------------------------------
-// Shepard-tone chords: each chord tone over 5 octaves with a raised-cosine
-// loudness taper, so no bass or top note can be heard, only the quality.
-// ---------------------------------------------------------------------------
-const SHEP_SPAN = 5;
-const SHEP_PLATEAU = 0.4;
-export function shepardAmplitude(octaveIdx: number, span = SHEP_SPAN, plateau = SHEP_PLATEAU): number {
-  if (span <= 1) return 1;
-  const x = octaveIdx / (span - 1);
-  if (x > plateau && x < 1 - plateau) return 1;
-  const edge = x <= plateau ? x / plateau : (1 - x) / plateau;
-  return 0.5 - 0.5 * Math.cos(Math.PI * edge);
-}
 let shepGen = 0;
 let shepNodes: { osc: Tone.Oscillator; gain: Tone.Gain }[] = [];
 function disposeShep() {
@@ -732,47 +568,9 @@ function disposeShep() {
   });
   shepNodes = [];
 }
-export function stopShepardChord() {
+function stopShepardChord() {
   shepGen += 1;
   disposeShep();
-}
-export async function playShepardChord({ rootMidi, intervals, durationSeconds = 1.8 }: { rootMidi: number; intervals: number[]; durationSeconds?: number }) {
-  await Tone.start();
-  stopShepardChord();
-  const myGen = shepGen;
-  const center = (SHEP_SPAN - 1) / 2;
-  const partials: { freq: number; amp: number }[] = [];
-  for (const iv of intervals)
-    for (let o = 0; o < SHEP_SPAN; o++) {
-      const midi = rootMidi + iv + 12 * (o - center);
-      partials.push({ freq: 440 * Math.pow(2, (midi - 69) / 12), amp: shepardAmplitude(o) });
-    }
-  const bus = new Tone.Gain(1.1 / partials.length).connect(chain());
-  const attack = 0.04;
-  const release = 0.35;
-  const now = Tone.now() + 0.05;
-  shepNodes = partials.map(({ freq, amp }) => {
-    const osc = new Tone.Oscillator(freq, "sine");
-    const g = new Tone.Gain(0);
-    osc.connect(g);
-    g.connect(bus);
-    osc.start(now);
-    g.gain.setValueAtTime(0, now);
-    g.gain.linearRampTo(amp, attack, now);
-    g.gain.setValueAtTime(amp, now + durationSeconds - release);
-    g.gain.linearRampTo(0, release, now + durationSeconds - release);
-    osc.stop(now + durationSeconds + 0.05);
-    return { osc, gain: g };
-  });
-  setTimeout(() => {
-    if (myGen === shepGen) disposeShep();
-    try {
-      bus.dispose();
-    } catch {
-      /* gone */
-    }
-  }, (durationSeconds + 0.15) * 1000);
-  await sleep(200);
 }
 
 // ---------------------------------------------------------------------------
@@ -800,11 +598,6 @@ export function stopAllSound() {
 }
 
 const stopListeners = new Set<() => void>();
-/** Extra sound sources (drums, drones) register here to be silenced by stopAllSound. */
-export function onStopAll(f: () => void): () => void {
-  stopListeners.add(f);
-  return () => stopListeners.delete(f);
-}
 
 /** Un-mute without needing a gesture (after stopAllSound, inside a session). */
 export function unmute() {

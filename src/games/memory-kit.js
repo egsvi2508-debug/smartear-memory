@@ -4,13 +4,8 @@
 // ctx.finishRound().
 
 import { statsStrip, noteRound, bestLine, pushBest } from "../lib/strip";
-import { ensureAudioReady, stopAllSound, playCorrectFx, playWrongFx, Tone } from "./audio.js";
+import { ensureAudioReady, stopAllSound, playCorrectFx, playWrongFx, Tone } from "../lib/engine";
 import * as fx from "./fx.js";
-
-/** Kept for older callers; nothing sets these any more. */
-export const mkHooks = { load: null, save: null, onRound: null, onRunEnd: null };
-
-export const LIVES = Infinity;
 const AUTO_NEXT_MS = 850; // after a clean round
 const LEVEL_MISS_MS = 500; // Levels: after a miss, before the next go
 
@@ -22,47 +17,6 @@ export function el(tag, className, text) {
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
-}
-
-export function fmt(n) {
-  return Math.round(n).toLocaleString("en-US");
-}
-
-export function todayKey(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function yesterdayKey() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return todayKey(d);
-}
-
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return function () {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function hashString(s) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-export function seededRng(key) {
-  return mulberry32(hashString(key));
 }
 export function randInt(rng, lo, hi) {
   return lo + Math.floor(rng() * (hi - lo + 1));
@@ -89,9 +43,8 @@ export function weightedPick(rng, items) {
   return items[items.length - 1].value;
 }
 
-
 /** stopAllSound() leaves the shared output MUTED until something calls
- *  ensureAudioReady() again (see audio.js), the right/wrong chimes don't,
+ *  ensureAudioReady() again (see lib/engine.ts), the right/wrong chimes don't,
  *  so un-mute right before them or they'd play into silence. */
 function playFx(ok) {
   try {
@@ -108,7 +61,6 @@ function playFx(ok) {
 function unlockAudio() {
   ensureAudioReady().catch(() => {});
 }
-
 function loadPrefs(key) {
   try {
     return JSON.parse(localStorage.getItem(key + "_prefs")) || {};
@@ -137,7 +89,8 @@ function savePrefs(key, prefs) {
  *   createRunner(ctx) → { startRound({ retry }), onKey(e) → bool, destroy() }
  * }
  */
-export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}) {
+export function openMemoryGame(container, game, { onExit, rules, hudExtra, name } = {}) {
+  const shownTitle = name || game.title; // the site passes the same short name as its home tile
   document.body.classList.add("mode-train");
   container.innerHTML = "";
   const root = el("div", `trainer mk mk-${game.id}`);
@@ -147,6 +100,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
   let destroyed = false;
   let runner = null;
   let runApi = null;
+  let runSeq = 0; // bumped by every startRun: a replaced run's late callbacks must not act
   const timers = new Set();
 
   function later(fn, ms) {
@@ -243,14 +197,24 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
   }
 
   /** intro: show the start pop-up (mode, level, options, Play) instead of starting. */
+  // The run on screen. Its streak counts toward your best even if you leave or restart mid-level.
+  let currentRun = null;
+  function keepStreak() {
+    if (currentRun && currentRun.streak) noteRound(game.id, { cleared: 0, streak: currentRun.streak, round: false });
+    currentRun = null;
+  }
+
   function startRun(firstLevel, intro = false) {
+    keepStreak();
     clearTimers();
     stopRunner();
     stopAllSound();
     unlockAudio();
     root.innerHTML = "";
+    const myRun = ++runSeq;
 
     const run = { level: firstLevel, startLevel: firstLevel, lives: Infinity, combo: 0, rounds: 0, lastSuccess: null, streak: 0, hitsThisRound: 0 };
+    currentRun = run;
     const streakMode = playMode === "streak";
 
     // ---- DOM ----
@@ -259,7 +223,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     const backBtn = el("button", "mk-icon-btn", "←");
     backBtn.setAttribute("aria-label", "Back to the games");
     const hudMid = el("div", "mk-hud-mid");
-    const title = el("div", "mk-hud-title", game.title);
+    const title = el("div", "mk-hud-title", shownTitle);
     hudMid.append(title);
     const lvl = el("div", "mk-lvl");
     const down = el("button", "mk-lvl-btn", "‹");
@@ -373,7 +337,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     overX.addEventListener("click", () => tuck(true));
     reopen.addEventListener("click", () => tuck(false));
 
-    game$.append(hud, card, status, controls, result, tuckBar, statsStrip(game.id));
+    game$.append(hud, card, status, controls, result, tuckBar, statsStrip(game.id, shownTitle));
     if (rules && rules.length) {
       const box = el("section", "mk-rules");
       box.appendChild(el("div", "mk-rules-h", "Rules"));
@@ -387,6 +351,9 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     let phase = "ready";
     let resultKeys = [];
     let autoTimer = null;
+    let revealAt = 0; // when the last round ended (a quick second Enter shouldn't skip the pop-up)
+    let critTimer = null;
+    const stopCrit = () => (clearTimeout(critTimer), timers.delete(critTimer));
 
     function cancelAuto() {
       if (autoTimer === null) return;
@@ -423,11 +390,13 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
       card,
       stage,
       controls,
-      later,
+      // A game's async steps (waiting for audio) can outlive its run: once a new
+      // run has started (level ‹ ›, settings, Play again), they must stay silent.
+      later: (fn, ms) => later(() => myRun === runSeq && fn(), ms),
       clearTimers,
       comboMult: () => 1,
       fx,
-      isDestroyed: () => destroyed,
+      isDestroyed: () => destroyed || myRun !== runSeq,
       setPhase,
       get phase() {
         return phase;
@@ -446,6 +415,8 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
       },
       /** A wrong answer inside a round (Levels mode): the streak starts over. */
       miss() {
+        // Keep the run that just ended (it is only recorded at the end of a level otherwise).
+        if (run.streak) noteRound(game.id, { cleared: 0, streak: run.streak, round: false });
         run.streak = 0;
         updateHud();
       },
@@ -475,9 +446,11 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
           void timerFill.offsetWidth;
           timerFill.style.transition = `transform ${ms}ms linear`;
           timerFill.style.transform = "scaleX(0)";
-          later(() => timerFill.classList.add("critical"), Math.round(ms * 0.72));
+          stopCrit(); // an earlier card's countdown mustn't turn this one red early
+          critTimer = later(() => timerFill.classList.add("critical"), Math.round(ms * 0.72));
         },
         reset(full = true) {
+          stopCrit();
           timerFill.classList.remove("critical");
           timerFill.style.transition = "none";
           timerFill.style.transform = full ? "scaleX(1)" : "scaleX(0)";
@@ -486,6 +459,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
       /** A level is done: a clean one moves up, a miss ends the round. */
       finishRound(o) {
         setPhase("reveal");
+        revealAt = performance.now();
         run.rounds++;
         run.lastSuccess = !!o.success;
         if (o.success && !run.hitsThisRound) bumpStreak();
@@ -507,6 +481,8 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
             console.warn(e);
           }
           result.classList.remove("over", "intro");
+          result.classList.add("hidden"); // no panel either (a bare "Next" would flash up)
+          resultKeys = []; // no extras on a Levels miss (not last round's either)
           statusText.textContent = "";
           autoTimer = later(advance, LEVEL_MISS_MS);
           return;
@@ -518,7 +494,8 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
           if (o.success) {
             fx.flash(card, "good");
             fx.burst(card, { kind: "good", count: 22, glyphs: true });
-            fx.stamp(card, streakMode ? `Streak ${run.streak}` : "Nice", "", "good");
+            // "Nice" only for a clean level; a pass with a few misses just moves on.
+            fx.stamp(card, streakMode ? `Streak ${run.streak}` : o.misses ? "Next level" : "Nice", o.misses ? `${o.misses} miss${o.misses > 1 ? "es" : ""}` : "", o.misses ? "gold" : "good");
             fx.kick(card, "pop", 340);
           } else {
             fx.flash(card, "bad");
@@ -528,6 +505,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
         } catch (e) {
           console.warn(e);
         }
+        result.classList.remove("hidden");
         result.classList.toggle("success", !!o.success);
         resultTip.textContent = o.success ? "" : o.tip || "";
         legend.innerHTML = "";
@@ -542,7 +520,8 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
             cancelAuto();
             a.onClick();
           };
-          if (a.key) resultKeys.push([a.key.toLowerCase(), run$]);
+          // Only on round over: a pass hides the result, and a key there would stop the auto-advance.
+          if (a.key && !o.success) resultKeys.push([a.key.toLowerCase(), run$]);
           b.addEventListener("click", run$);
           // Round over: extras live on the play page, once the pop-up is closed.
           (o.success ? extraActions : tuckExtra).appendChild(b);
@@ -597,6 +576,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
       const l = Math.max(1, Math.min(99, run.level + d));
       if (l === run.level) return;
       saveLevel(l);
+      setPlayMode(overMode); // the mode the pop-up shows (the run's own unless it was changed there)
       startRun(l);
     };
     down.addEventListener("click", () => jump(-1));
@@ -613,7 +593,12 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
           return false;
         }
         if (phase === "reveal") {
-          if (e.key === "Enter" || e.key === " ") return (run.lastSuccess ? advance() : playAgain()), true;
+          if (e.key === "Enter" || e.key === " ") {
+            // A held key, or the miss flash in Levels (the next go comes by itself):
+            // never restart the run from here.
+            if (e.repeat || (!run.lastSuccess && (!streakMode || performance.now() - revealAt < 400))) return true;
+            return (run.lastSuccess ? advance() : playAgain()), true;
+          }
           const hit = !popOpen() || run.lastSuccess ? resultKeys.find(([k]) => k === e.key.toLowerCase()) : null;
           if (hit) return hit[1](), true;
           return false;
@@ -626,7 +611,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
     setPhase("ready");
     runner = game.createRunner(ctx);
     if (intro) {
-      overTitle.textContent = game.title;
+      overTitle.textContent = shownTitle;
       overSub.textContent = bestLine(game.id);
       pVal.value = String(run.startLevel);
       result.classList.add("over", "intro");
@@ -645,6 +630,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra } = {}
   function teardown() {
     if (destroyed) return;
     destroyed = true;
+    keepStreak();
     clearTimers();
     stopRunner();
     stopAllSound();

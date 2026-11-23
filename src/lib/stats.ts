@@ -3,11 +3,13 @@
 //   bestStreak , most right answers in a row
 //   rounds     , rounds played
 
-export interface Stats {
+interface Stats {
   bestLevel: number;
   bestStreak: number;
   rounds: number;
 }
+
+export const GAME_IDS = ["note-rush", "interval-rush", "visual-memory", "sequence-memory", "pairs-memory", "hold-memory", "memory", "relative-memory"];
 
 const key = (id: string) => `hears:stats:${id}`;
 
@@ -37,21 +39,40 @@ export function recordRound(id: string, o: { cleared: number; streak: number; ro
 }
 
 const NAME_KEY = "hears:name";
-export function playerName(): string {
+const JOIN_KEY = "hears:board";
+
+function get(k: string): string {
   try {
-    let n = localStorage.getItem(NAME_KEY);
-    if (!n) {
-      n = "Player" + String(Math.floor(1000 + Math.random() * 9000));
-      localStorage.setItem(NAME_KEY, n);
-    }
-    return n;
+    return localStorage.getItem(k) || "";
   } catch {
-    return "Player";
+    return "";
   }
 }
-export function setPlayerName(n: string) {
+function put(k: string, v: string | null) {
   try {
-    localStorage.setItem(NAME_KEY, n);
+    if (v === null) localStorage.removeItem(k);
+    else localStorage.setItem(k, v);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Your public leaderboard name ("" until you join). */
+export const playerName = () => get(NAME_KEY);
+export const setPlayerName = (n: string) => put(NAME_KEY, n);
+/** Did you choose to be on the leaderboards? */
+export const boardJoined = () => get(JOIN_KEY) === "on";
+export function setBoardJoined(on: boolean) {
+  put(JOIN_KEY, on ? "on" : null);
+  window.dispatchEvent(new Event("hears:joined"));
+}
+
+/** Wipe everything this site keeps in this browser. */
+export function clearLocalData() {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("hears:") || k.startsWith("smem:") || k.startsWith("smartear_"))
+      .forEach((k) => localStorage.removeItem(k));
   } catch {
     /* ignore */
   }

@@ -24,9 +24,9 @@
 // Deliberately PURE VISUAL during the flash, nothing plays. The snapshot
 // can be heard afterwards on the reveal ("Hear it") as reinforcement only.
 
-import { keySpelling, keyLabel, noteLabel } from "./theory.js";
-import { getNoteSystem } from "./settings.js";
-import { ensureAudioReady, playNotes, stopAllSound } from "./audio.js";
+import { keySpelling, keyLabel, noteLabel } from "../lib/theory";
+import { getNoteSystem } from "../lib/prefs";
+import { ensureAudioReady, playNotes, stopAllSound } from "../lib/engine";
 import { createStaffBoard, letterOf, midiOf, spelledOf, accidentalIcon } from "./staff-board.js";
 import { openMemoryGame, el, randInt, pick } from "./memory-kit.js";
 
@@ -479,7 +479,8 @@ function createRunner(ctx) {
     onKey(e) {
       const k = e.key;
       if (ctx.phase === "flash") {
-        if (k === " " || k === "Enter") return endFlash(), true;
+        // A held key (the Enter that started the round) must not skip the notes.
+        if (k === " " || k === "Enter") return e.repeat || endFlash(), true;
         return false;
       }
       if (ctx.phase !== "recall") return false;

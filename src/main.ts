@@ -1,7 +1,6 @@
 // Human Ears: a simple site of ear games. Home lists the games;
-// #/<game-id> opens one straight into play.
+// #/<game-id> opens one straight into play; #/privacy, #/terms, #/credits.
 
-import "@fontsource-variable/fraunces/soft.css";
 import "@fontsource-variable/work-sans";
 import "@fontsource/space-mono/latin-400.css";
 import "@fontsource/space-mono/latin-700.css";
@@ -18,10 +17,12 @@ import { loadVexFlow } from "./lib/vexflow";
 import { preloadPiano, stopAllSound, ensureAudio, playListeners, setGameVolume } from "./lib/engine";
 import "./lib/keys-dialog";
 import { openKeySettings } from "./lib/keys";
+import { getStats } from "./lib/stats";
+import { DOCS, renderDoc, type Doc } from "./legal";
 import { unlockMusic, setMusicMode, duckMusic, musicOn, setMusicOn, onMusicChange, musicVolume, setMusicVolume, skipTrack, nowPlaying } from "./lib/music";
 
 type Handle = { destroy?: () => void } | void;
-type Opener = (c: HTMLElement, o: { onExit: () => void; openModule: (id: string) => void; rules?: string[]; hudExtra?: HTMLElement }) => Handle;
+type Opener = (c: HTMLElement, o: { name: string; onExit: () => void; openModule: (id: string) => void; rules?: string[]; hudExtra?: HTMLElement }) => Handle;
 
 interface Game {
   id: string;
@@ -84,12 +85,17 @@ function showHome() {
     const icon = el("span", "tile-icon");
     icon.innerHTML = g.icon;
     a.append(icon, el("span", "tile-name", g.name));
+    const s = getStats(g.id);
+    if (s.bestLevel || s.bestStreak) a.append(el("span", "tile-best mono", s.bestLevel ? `Lv ${s.bestLevel}` : `×${s.bestStreak}`));
     a.addEventListener("click", () => void ensureAudio().catch(() => {}));
     grid.append(a);
   });
   const head = el("div", "home-head");
   head.append(logo, musicBtn);
-  main.append(head, grid);
+  const foot = el("footer", "home-foot");
+  for (const [id, label] of Object.entries(DOCS)) foot.append(Object.assign(el("a", "", label), { href: `#/${id}` }));
+  foot.append(Object.assign(el("a", "", "Feedback"), { href: "https://github.com/egsvi2508-debug/smartear-memory/issues", target: "_blank", rel: "noopener" }));
+  main.append(head, el("p", "home-tag", "Train your ears. Pick a game and play."), grid, foot);
   app.append(main);
   window.scrollTo(0, 0);
 }
@@ -106,6 +112,7 @@ async function showGame(game: Game) {
   const [, mod] = await Promise.all([loadVexFlow().catch(() => null), game.load()]);
   if (my !== token) return;
   handle = mod.open(host, {
+    name: game.name,
     rules: game.rules,
     hudExtra: musicBtn,
     onExit: () => (location.hash = "#/"),
@@ -137,7 +144,7 @@ function musicButton() {
 
   const pop = el("div", "snd-pop");
   pop.setAttribute("role", "dialog");
-  pop.setAttribute("aria-label", "Sound");
+  pop.setAttribute("aria-label", "Settings");
   const slider = (label: string, value: number, on: (v: number) => void) => {
     const row = el("label", "snd-row");
     const name = el("span", "snd-name", label);
@@ -162,7 +169,10 @@ function musicButton() {
   toggle.type = "button";
   const skip = el("button", "snd-skip", "Next song");
   skip.type = "button";
-  top.append(el("span", "snd-title", "Music"), toggle);
+  toggle.setAttribute("aria-label", "Music");
+  const musicName = el("span", "snd-title", "Music");
+  musicName.addEventListener("click", () => toggle.click()); // the name works as a switch too
+  top.append(musicName, toggle);
   const now = el("div", "snd-now");
   const keysBtn = el("button", "snd-skip snd-keys", "Keyboard keys");
   keysBtn.type = "button";
@@ -170,6 +180,36 @@ function musicButton() {
     pop.classList.remove("open");
     openKeySettings();
   });
+  // Clean screen: hides the stats and rules under the game, for recording.
+  const CLEAN = "hears:clean";
+  const cleanRow = el("div", "snd-top snd-clean");
+  const cleanBtn = el("button", "snd-toggle");
+  cleanBtn.type = "button";
+  cleanBtn.setAttribute("aria-label", "Clean screen");
+  const cleanName = el("span", "snd-name", "Clean screen (for recording)");
+  cleanName.addEventListener("click", () => cleanBtn.click());
+  cleanRow.append(cleanName, cleanBtn);
+  const drawClean = () => {
+    const on = document.body.classList.contains("clean");
+    cleanBtn.textContent = on ? "On" : "Off";
+    cleanBtn.classList.toggle("on", on);
+    cleanBtn.setAttribute("aria-pressed", String(on));
+  };
+  try {
+    document.body.classList.toggle("clean", localStorage.getItem(CLEAN) === "on");
+  } catch {
+    /* ignore */
+  }
+  cleanBtn.addEventListener("click", () => {
+    const on = document.body.classList.toggle("clean");
+    try {
+      localStorage.setItem(CLEAN, on ? "on" : "off");
+    } catch {
+      /* ignore */
+    }
+    drawClean();
+  });
+  drawClean();
   pop.append(
     top,
     slider("Music volume", musicVolume(), setMusicVolume),
@@ -184,6 +224,7 @@ function musicButton() {
     now,
     skip,
     keysBtn,
+    cleanRow,
   );
   document.body.append(pop);
 
@@ -215,6 +256,17 @@ function musicButton() {
   pop.addEventListener("pointerdown", (e) => e.stopPropagation());
   b.addEventListener("pointerdown", (e) => e.stopPropagation());
   pop.addEventListener("keydown", (e) => e.stopPropagation());
+  // Escape closes the panel (and only the panel: a game would take it as "leave").
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key !== "Escape" || !pop.classList.contains("open")) return;
+      e.stopPropagation();
+      e.preventDefault();
+      close();
+    },
+    { capture: true },
+  );
   document.addEventListener("pointerdown", close);
   window.addEventListener("hashchange", close);
   window.addEventListener("resize", close);
@@ -225,11 +277,21 @@ playListeners.add(duckMusic);
 // Browsers only allow sound after a tap or key press: start the music on the first one.
 for (const ev of ["pointerdown", "keydown"]) document.addEventListener(ev, () => unlockMusic(), { capture: true });
 
+function showDoc(kind: Doc) {
+  token++;
+  closeGame();
+  app.innerHTML = "";
+  document.title = `${DOCS[kind]} · Human Ears`;
+  renderDoc(app, kind);
+  window.scrollTo(0, 0);
+}
+
 function route() {
   const id = location.hash.replace(/^#\/?/, "").split("?")[0];
   const game = GAMES.find((g) => g.id === id);
   setMusicMode(!game || READING.has(game.id) ? "full" : "soft");
   if (game) showGame(game);
+  else if (id in DOCS) showDoc(id as Doc);
   else showHome();
 }
 

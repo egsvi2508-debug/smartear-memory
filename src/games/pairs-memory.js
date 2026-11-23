@@ -13,9 +13,9 @@
 // 4-5-note melodies, each pair on its own starting note. Matched cards
 // reveal their names, so a run doubles as quiet ear training.
 
-import { noteLabel, pitchName as nameWithOctave } from "./theory.js";
-import { getNoteSystem } from "./settings.js";
-import { ensureAudioReady, playNotesExclusive } from "./audio.js";
+import { noteLabel, pitchName as nameWithOctave } from "../lib/theory";
+import { getNoteSystem } from "../lib/prefs";
+import { ensureAudioReady, playNotesExclusive } from "../lib/engine";
 import { openMemoryGame, el, randInt, pick, shuffle } from "./memory-kit.js";
 
 export const meta = {
@@ -214,7 +214,7 @@ function createRunner(ctx) {
   }
 
   function status() {
-    const left = spec.budget - mistakes;
+    const left = Math.max(0, spec.budget - mistakes); // the last miss over the limit shows 0, not -1
     ctx.status(`${found} of ${spec.pairs} pairs · ${left} miss${left === 1 ? "" : "es"} left`);
     ctx.pips(cards.filter((c, i) => cards.findIndex((d) => d.item.key === c.item.key) === i).map((c) => (c.matched ? "good" : "")));
   }
@@ -327,6 +327,7 @@ function createRunner(ctx) {
 
   function startRound() {
     roundIndex++;
+    clearTimeout(pendingTimer); // a miss from the last board must not close cards on this one
     spec = boardSpec(run.level);
     const items = buildItems(rng, spec);
     cards = shuffle(rng, [...items, ...items]).map((item) => ({ item, matched: false, el: null }));

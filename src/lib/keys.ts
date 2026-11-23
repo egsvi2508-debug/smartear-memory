@@ -5,6 +5,8 @@
 // Keys are matched by their physical position (KeyboardEvent.code), so a
 // custom layout keeps working whatever the keyboard's language.
 
+import { listenWhileShown } from "./listen";
+
 export type Scheme = "letters" | "piano" | "custom";
 export const SCHEMES: Record<Scheme, string> = { letters: "Letters", piano: "Piano rows", custom: "My keys" };
 export const NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
@@ -19,7 +21,7 @@ const PIANO_CODES: Record<string, number> = {
 };
 const LETTER_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
-export interface CustomKey {
+interface CustomKey {
   code: string;
   label: string;
 }
@@ -139,6 +141,5 @@ export function renderKeysChoice(slot: HTMLElement) {
   wrap.append(label, seg, edit);
   slot.append(wrap);
   paint();
-  const onChange = () => (wrap.isConnected ? paint() : window.removeEventListener("hears:keys-changed", onChange));
-  window.addEventListener("hears:keys-changed", onChange);
+  listenWhileShown(wrap, "hears:keys-changed", paint);
 }
