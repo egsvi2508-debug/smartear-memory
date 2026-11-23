@@ -390,17 +390,6 @@ interface PlayOpts {
 
 let defaultTimbre: Timbre = "piano";
 
-/** Called with the length (ms) of every question sound, so background music can step aside. */
-export const playListeners = new Set<(ms: number) => void>();
-function notifyPlay(ms: number) {
-  playListeners.forEach((f) => {
-    try {
-      f(ms);
-    } catch {
-      /* ignore */
-    }
-  });
-}
 
 export function playNotes(midis: number[], opts: PlayOpts = {}): ScheduleItem[] {
   const { mode = "harmonic", noteDur = 1.6, gap = 0.75, humanize = false, phrase = false, velocity = null } = opts;
@@ -426,7 +415,6 @@ export function playNotes(midis: number[], opts: PlayOpts = {}): ScheduleItem[] 
     schedule(now + delay, (t) => voice.trigger(m, noteDur, t, vel));
     return { midi: m, delayMs: (lead + delay) * 1000, durMs: noteDur * 1000 };
   });
-  notifyPlay(Math.max(0, ...out.map((x) => x.delayMs + x.durMs)));
   return out;
 }
 let washNodes: Tone.ToneAudioNode[] = [];
@@ -542,7 +530,6 @@ function stopExclusive() {
 }
 export function playNotesExclusive(midis: number[], { mode = "harmonic", noteDur = 1.6, gap = 0.75, velocity = 0.9 }: PlayOpts = {}) {
   stopExclusive();
-  notifyPlay(((mode === "harmonic" ? 0 : (midis.length - 1) * gap) + noteDur) * 1000);
   const gen = exclusiveGen;
   const voice = voiceFor(defaultTimbre);
   midis.forEach((m, i) => {

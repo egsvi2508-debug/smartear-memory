@@ -6,16 +6,13 @@
 // and the music must keep going through that. Volume goes through a
 // GainNode (iPhones ignore <audio>.volume).
 //
-// Two levels: "full" where you read notes, "soft" (half as loud) where you
-// listen. Whenever a game plays its own notes, the music dips for that long.
+// One steady, low level: the game's own notes never change the music's volume.
+// Only the Music volume slider does.
 
 import { PLAYLIST, type Track } from "./playlist";
 
-type Mode = "full" | "soft";
-
 const KEY_ON = "smem:music";
-const KEY_VOL = "smem:musicVol";
-const DUCK = 0.15; // share of the volume left while a game's notes sound
+const KEY_VOL = "smem:musicVol2"; // new key: everyone starts at the new, lower default
 
 let ac: AudioContext | null = null;
 let gain: GainNode | null = null;
@@ -23,11 +20,8 @@ let audio: HTMLAudioElement | null = null;
 let order: number[] = [];
 let current = -1;
 let playsLeft = 0;
-let mode: Mode = "full";
 let enabled = read(KEY_ON, "on") !== "off";
-let volume = Math.max(0, Math.min(1, Number(read(KEY_VOL, "0.6")) || 0));
-let duckUntil = 0;
-let duckTimer: ReturnType<typeof setTimeout> | null = null;
+let volume = Math.max(0, Math.min(1, Number(read(KEY_VOL, "0.4")) || 0));
 const listeners = new Set<() => void>();
 
 function read(k: string, d: string): string {
@@ -46,13 +40,11 @@ function write(k: string, v: string) {
 }
 const base = () => (import.meta.env.BASE_URL || "./").replace(/\/?$/, "/");
 
-function level(): number {
-  const v = volume * (mode === "soft" ? 0.5 : 1);
-  return performance.now() < duckUntil ? v * DUCK : v;
-}
-function applyGain(fast = false) {
+// Squared, so the low end of the slider is fine-grained (ears hear loudness that way).
+const level = () => volume * volume;
+function applyGain() {
   if (!ac || !gain) return;
-  gain.gain.setTargetAtTime(level(), ac.currentTime, fast ? 0.03 : 0.25);
+  gain.gain.setTargetAtTime(level(), ac.currentTime, 0.05);
 }
 
 function shuffle() {
@@ -114,19 +106,6 @@ export function unlockMusic() {
   else if (audio!.paused) audio!.play().catch(() => {});
 }
 
-export function setMusicMode(m: Mode) {
-  mode = m;
-  applyGain();
-}
-
-/** The game is about to play notes for this long: step aside. */
-export function duckMusic(ms: number) {
-  duckUntil = Math.max(duckUntil, performance.now() + ms + 150);
-  applyGain(true);
-  if (duckTimer) clearTimeout(duckTimer);
-  duckTimer = setTimeout(() => applyGain(), duckUntil - performance.now() + 20);
-}
-
 export function musicOn(): boolean {
   return enabled;
 }
@@ -144,7 +123,7 @@ export function musicVolume(): number {
 export function setMusicVolume(v: number) {
   volume = Math.max(0, Math.min(1, v));
   write(KEY_VOL, String(volume));
-  applyGain(true);
+  applyGain();
 }
 
 /** Skip to another track. */
@@ -164,7 +143,7 @@ export function onMusicChange(f: () => void) {
 
 /** Dev/testing. */
 function musicState() {
-  return { state: ac?.state ?? "none", playing: !!audio && !audio.paused, track: nowPlaying()?.title ?? null, gain: gain ? Math.round(gain.gain.value * 100) / 100 : null, mode, enabled, volume };
+  return { state: ac?.state ?? "none", playing: !!audio && !audio.paused, track: nowPlaying()?.title ?? null, gain: gain ? Math.round(gain.gain.value * 100) / 100 : null, enabled, volume };
 }
 
 // Pause with the tab hidden.

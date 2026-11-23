@@ -14,12 +14,12 @@ import "./styles/simple.css";
 import "./styles/site.css";
 
 import { loadVexFlow } from "./lib/vexflow";
-import { preloadPiano, stopAllSound, ensureAudio, playListeners, setGameVolume } from "./lib/engine";
+import { preloadPiano, stopAllSound, ensureAudio, setGameVolume } from "./lib/engine";
 import "./lib/keys-dialog";
 import { openKeySettings } from "./lib/keys";
 import { getStats } from "./lib/stats";
 import { DOCS, renderDoc, type Doc } from "./legal";
-import { unlockMusic, setMusicMode, duckMusic, musicOn, setMusicOn, onMusicChange, musicVolume, setMusicVolume, skipTrack, nowPlaying } from "./lib/music";
+import { unlockMusic, musicOn, setMusicOn, onMusicChange, musicVolume, setMusicVolume, skipTrack, nowPlaying } from "./lib/music";
 
 type Handle = { destroy?: () => void } | void;
 type Opener = (c: HTMLElement, o: { name: string; onExit: () => void; openModule: (id: string) => void; rules?: string[]; hudExtra?: HTMLElement }) => Handle;
@@ -120,8 +120,6 @@ async function showGame(game: Game) {
   });
 }
 
-// Background music: full volume where you read, softer where you listen.
-const READING = new Set(["note-rush", "visual-memory"]);
 const GAME_VOL = "smem:gameVol";
 function readGameVol(): number {
   try {
@@ -273,7 +271,6 @@ function musicButton() {
   return b;
 }
 const musicBtn = musicButton();
-playListeners.add(duckMusic);
 // Browsers only allow sound after a tap or key press: start the music on the first one.
 for (const ev of ["pointerdown", "keydown"]) document.addEventListener(ev, () => unlockMusic(), { capture: true });
 
@@ -289,7 +286,6 @@ function showDoc(kind: Doc) {
 function route() {
   const id = location.hash.replace(/^#\/?/, "").split("?")[0];
   const game = GAMES.find((g) => g.id === id);
-  setMusicMode(!game || READING.has(game.id) ? "full" : "soft");
   if (game) showGame(game);
   else if (id in DOCS) showDoc(id as Doc);
   else showHome();
