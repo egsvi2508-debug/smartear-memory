@@ -111,7 +111,16 @@ function createRunner(ctx) {
   const track = el("div", "ph-track");
   const thumb = el("div", "ph-thumb");
   strip.append(track);
-  ctx.stage.append(say, orb, strip);
+  // The three steps, always on show, the current one lit: Listen, Hold, Find.
+  const steps = el("div", "ph-steps");
+  const stepEls = ["Listen", "Hold it", "Find it"].map((t, i) => {
+    const s = el("div", "ph-step");
+    s.append(el("b", "", String(i + 1)), el("span", "", t));
+    steps.append(s);
+    return s;
+  });
+  const setStep = (i) => stepEls.forEach((s, k) => (s.classList.toggle("on", k === i), s.classList.toggle("done", k < i)));
+  ctx.stage.append(steps, say, orb, strip);
 
   const row = el("div", "mk-row center ph-controls");
   row.dataset.show = "recall";
@@ -215,7 +224,8 @@ function createRunner(ctx) {
     strip.classList.remove("show", "ph-revealed");
     orb.className = "ph-orb";
     orbText.textContent = "";
-    say.textContent = "";
+    say.textContent = "Get ready: a note is coming";
+    setStep(-1);
     ctx.timer.reset(false);
     ctx.setPhase("ready");
     ctx.splash(`Level ${run.level}`, `${spec.holdSec} s · ${spec.notes} other notes${spec.decoy ? " · a decoy" : ""}`);
@@ -228,8 +238,9 @@ function createRunner(ctx) {
     ctx.setPhase("listen");
     orb.className = "ph-orb sounding";
     orbText.textContent = "Listen";
-    say.textContent = "Keep this tone in mind (without singing it!)";
-    ctx.status("Keep this tone in mind, without singing it");
+    setStep(0);
+    say.textContent = "Remember this note";
+    ctx.status("Listen. Don't sing or hum it.");
     play(target, 1.6);
     ctx.later(hold, 1700);
   }
@@ -238,8 +249,9 @@ function createRunner(ctx) {
     orb.className = "ph-orb holding";
     orb.style.setProperty("--hold", `${spec.holdMs}ms`);
     orbText.textContent = "Hold";
-    say.textContent = "Keep your tone in mind (without singing it!)";
-    ctx.status("Other notes will try to pull you away: keep yours, silently");
+    setStep(1);
+    say.textContent = "Keep it in your head. Ignore the other notes";
+    ctx.status("Silently. Don't sing or hum.");
     ctx.timer.start(spec.holdMs);
     for (const d of distractorPlan(spec, rng, target)) {
       ctx.later(() => {
@@ -258,8 +270,9 @@ function createRunner(ctx) {
     orbText.textContent = "";
     ctx.timer.reset(false);
     strip.classList.add("show");
-    say.textContent = "Now find your tone";
-    ctx.status("Find the tone you kept in mind");
+    setStep(2);
+    say.textContent = "Slide to your note, then tap Lock in";
+    ctx.status("Drag the slider or use ← →, Space to hear, Enter to lock in");
   }
 
   function mark(m, cls, text) {

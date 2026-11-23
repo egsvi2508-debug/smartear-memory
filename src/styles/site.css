@@ -549,4 +549,14 @@ body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .beach-bg * { animation: none !important; } }
 /* text that sits straight on the scene stays readable */
 .mk-root.play .mk-rules { background: rgba(11, 16, 38, 0.78); }
-.mk-root.play .mk-status, .mk-root.play .nr-hint { text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
+.mk-root.play .mk-status, .mk-root.play .nr-hint { color: #e9ecff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9); }
+/* Pitch Hold: the 1-2-3 steps and a bigger instruction */
+.mk-root.play .ph-steps { display: flex; justify-content: center; gap: 6px; margin: 0 auto 10px; width: 100%; max-width: 420px; }
+.mk-root.play .ph-step { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px; border-radius: 12px; background: #eef1fb; color: #8a93b8; font: 800 14px/1 var(--font-ui); transition: background 0.2s, color 0.2s; }
+.mk-root.play .ph-step b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #d9def2; color: #5b648a; font-size: 13px; flex: none; }
+.mk-root.play .ph-step.on { background: var(--a-yellow); color: var(--a-dark); }
+.mk-root.play .ph-step.on b { background: var(--a-dark); color: var(--a-yellow); }
+.mk-root.play .ph-step.done { color: #4a5480; }
+.mk-root.play .ph-step.done b { background: #4caf7a; color: #fff; }
+.mk-root.play .ph-say { font-size: 24px; line-height: 1.2; min-height: 58px; display: grid; place-items: center; padding: 0 8px; }
+@media (max-width: 420px) { .mk-root.play .ph-say { font-size: 20px; } .mk-root.play .ph-step { font-size: 13px; } }

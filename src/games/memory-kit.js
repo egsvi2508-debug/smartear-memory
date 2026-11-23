@@ -335,9 +335,17 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra, name 
       tuckBar.classList.toggle("show", on);
     };
     overX.addEventListener("click", () => tuck(true));
+    // Levels miss in a game that asks for it (finishRound review: true): stay on the
+    // graded answer so the player can check it, until they tap Try again.
+    const reviewBar = el("div", "mk-tuck");
+    let reviewing = false;
+    const endReview = () => {
+      reviewing = false;
+      reviewBar.classList.remove("show");
+    };
     reopen.addEventListener("click", () => tuck(false));
 
-    game$.append(hud, card, status, controls, result, tuckBar, statsStrip(game.id, shownTitle));
+    game$.append(hud, card, status, controls, result, tuckBar, reviewBar, statsStrip(game.id, shownTitle));
     if (rules && rules.length) {
       const box = el("section", "mk-rules");
       box.appendChild(el("div", "mk-rules-h", "Rules"));
@@ -484,6 +492,23 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra, name 
           result.classList.add("hidden"); // no panel either (a bare "Next" would flash up)
           resultKeys = []; // no extras on a Levels miss (not last round's either)
           statusText.textContent = "";
+          if (o.review) {
+            reviewing = true;
+            statusText.textContent = `${o.title ? o.title + ". " : ""}Check your notes, then try again.`;
+            const again = el("button", "mk-btn primary mk-over-reopen", "Try again");
+            again.type = "button";
+            again.addEventListener("click", () => advance());
+            const extras = (o.actions || []).map((a) => {
+              const b = el("button", "mk-btn ghost", a.label);
+              b.type = "button";
+              b.addEventListener("click", a.onClick);
+              if (a.key) resultKeys.push([a.key.toLowerCase(), a.onClick]);
+              return b;
+            });
+            reviewBar.replaceChildren(...extras, again);
+            reviewBar.classList.add("show");
+            return;
+          }
           autoTimer = later(advance, LEVEL_MISS_MS);
           return;
         }
@@ -555,6 +580,7 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra, name 
 
     function advance() {
       if (phase !== "reveal") return;
+      endReview();
       autoTimer = null;
       clearTimers();
       stopAllSound();
@@ -596,10 +622,12 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra, name 
           if (e.key === "Enter" || e.key === " ") {
             // A held key, or the miss flash in Levels (the next go comes by itself):
             // never restart the run from here.
-            if (e.repeat || (!run.lastSuccess && (!streakMode || performance.now() - revealAt < 400))) return true;
+            if (e.repeat || performance.now() - revealAt < 400) return true;
+            if (reviewing) return advance(), true;
+            if (!run.lastSuccess && !streakMode) return true;
             return (run.lastSuccess ? advance() : playAgain()), true;
           }
-          const hit = !popOpen() || run.lastSuccess ? resultKeys.find(([k]) => k === e.key.toLowerCase()) : null;
+          const hit = !popOpen() || run.lastSuccess || reviewing ? resultKeys.find(([k]) => k === e.key.toLowerCase()) : null;
           if (hit) return hit[1](), true;
           return false;
         }

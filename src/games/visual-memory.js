@@ -442,6 +442,7 @@ function createRunner(ctx) {
       tip: buildTip({ target, info, g, success: g.perfect, roundIndex }),
       legend: g.perfect ? null : [["good", "Correct"], ["bad", "Wrong"], ["missed", "Missed"]],
       actions: [{ label: "Hear it", key: "h", onClick: hear }],
+      review: true, // Levels: stay on a wrong answer so it can be checked
     });
   }
 
