@@ -9,9 +9,10 @@
 // One steady, low level: the game's own notes never change the music's volume.
 // Only the Music volume slider does.
 
-import { PLAYLIST, type Track } from "./playlist";
+import { PLAYLISTS, type MusicStyle, type Track } from "./playlist";
 
 const KEY_ON = "smem:music";
+const KEY_STYLE = "smem:musicStyle";
 const KEY_VOL = "smem:musicVol2"; // new key: everyone starts at the new, lower default
 
 let ac: AudioContext | null = null;
@@ -19,6 +20,8 @@ let gain: GainNode | null = null;
 let audio: HTMLAudioElement | null = null;
 let order: number[] = [];
 let current = -1;
+let style: MusicStyle = read(KEY_STYLE, "beats") === "ambient" ? "ambient" : "beats";
+const list = () => PLAYLISTS[style];
 let playsLeft = 0;
 let enabled = read(KEY_ON, "on") !== "off";
 let volume = Math.max(0, Math.min(1, Number(read(KEY_VOL, "0.4")) || 0));
@@ -48,7 +51,7 @@ function applyGain() {
 }
 
 function shuffle() {
-  order = PLAYLIST.map((_, i) => i);
+  order = list().map((_, i) => i);
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
@@ -65,18 +68,18 @@ function onEnded() {
 }
 
 function nextTrack() {
-  if (!audio || !PLAYLIST.length) return;
+  if (!audio || !list().length) return;
   if (!order.length) shuffle();
   current = order.shift()!;
-  playsLeft = PLAYLIST[current].loops;
-  audio.src = base() + "music/" + PLAYLIST[current].file;
+  playsLeft = list()[current].loops;
+  audio.src = base() + "music/" + list()[current].file;
   audio.play().catch(() => {});
   listeners.forEach((f) => f());
 }
 
 function setup(): boolean {
   if (ac) return true;
-  if (!PLAYLIST.length) return false;
+  if (!list().length) return false;
   const C = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!C) return false;
   ac = new C();
@@ -126,6 +129,20 @@ export function setMusicVolume(v: number) {
   applyGain();
 }
 
+export function musicStyle(): MusicStyle {
+  return style;
+}
+/** Beats or ambient. Switching starts a song of the new style right away. */
+export function setMusicStyle(s: MusicStyle) {
+  if (s === style) return;
+  style = s;
+  write(KEY_STYLE, s);
+  order = [];
+  current = -1;
+  if (enabled && audio) nextTrack();
+  listeners.forEach((f) => f());
+}
+
 /** Skip to another track. */
 export function skipTrack() {
   if (!enabled) return setMusicOn(true);
@@ -134,7 +151,7 @@ export function skipTrack() {
 }
 
 export function nowPlaying(): Track | null {
-  return current >= 0 ? PLAYLIST[current] : null;
+  return current >= 0 ? list()[current] : null;
 }
 
 export function onMusicChange(f: () => void) {

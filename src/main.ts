@@ -19,7 +19,7 @@ import "./lib/keys-dialog";
 import { openKeySettings } from "./lib/keys";
 import { getStats } from "./lib/stats";
 import { DOCS, renderDoc, type Doc } from "./legal";
-import { unlockMusic, musicOn, setMusicOn, onMusicChange, musicVolume, setMusicVolume, skipTrack, nowPlaying } from "./lib/music";
+import { unlockMusic, musicOn, musicStyle, setMusicStyle, setMusicOn, onMusicChange, musicVolume, setMusicVolume, skipTrack, nowPlaying } from "./lib/music";
 
 type Handle = { destroy?: () => void } | void;
 type Opener = (c: HTMLElement, o: { name: string; onExit: () => void; openModule: (id: string) => void; rules?: string[]; hudExtra?: HTMLElement }) => Handle;
@@ -171,6 +171,21 @@ function musicButton() {
   const musicName = el("span", "snd-title", "Music");
   musicName.addEventListener("click", () => toggle.click()); // the name works as a switch too
   top.append(musicName, toggle);
+  // Style: Beats or Ambient (calm, no drums). Picking one also turns the music on.
+  const styleRow = el("div", "snd-style");
+  styleRow.setAttribute("role", "radiogroup");
+  styleRow.setAttribute("aria-label", "Music style");
+  const styleBtns = (["beats", "ambient"] as const).map((id) => {
+    const sb = el("button", "snd-style-btn", id === "beats" ? "Beats" : "Ambient");
+    sb.type = "button";
+    sb.setAttribute("role", "radio");
+    sb.addEventListener("click", () => {
+      setMusicStyle(id);
+      if (!musicOn()) setMusicOn(true);
+    });
+    styleRow.append(sb);
+    return [id, sb] as const;
+  });
   const now = el("div", "snd-now");
   const keysBtn = el("button", "snd-skip snd-keys", "Keyboard keys");
   keysBtn.type = "button";
@@ -210,6 +225,7 @@ function musicButton() {
   drawClean();
   pop.append(
     top,
+    styleRow,
     slider("Music volume", musicVolume(), setMusicVolume),
     slider("Game sounds", readGameVol(), (v) => {
       setGameVolume(v);
@@ -235,6 +251,10 @@ function musicButton() {
     toggle.setAttribute("aria-pressed", String(on));
     const t = nowPlaying();
     now.textContent = on && t ? `♪ ${t.title} · ${t.artist}` : "";
+    for (const [id, sb] of styleBtns) {
+      sb.classList.toggle("on", id === musicStyle());
+      sb.setAttribute("aria-checked", String(id === musicStyle()));
+    }
   };
   draw();
   onMusicChange(draw);

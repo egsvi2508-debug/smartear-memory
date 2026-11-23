@@ -1,5 +1,7 @@
-// Background music: beats (hip-hop, lo-fi, funk, retro wave), picked for a
-// strong steady groove. All CC0 (public domain): free to use anywhere,
+// Background music, two styles the player picks in Settings:
+//   beats   , hip-hop, lo-fi, funk, retro wave, picked for a strong steady groove
+//   ambient , calm and soothing: slow pads, soft piano, no drums
+// All CC0 (public domain): free to use anywhere,
 // including Instagram reels, no credit required. Sources: public/music/CREDITS.txt.
 export interface Track {
   file: string;
@@ -9,7 +11,7 @@ export interface Track {
   loops: number;
 }
 
-export const PLAYLIST: Track[] = [
+export const BEATS: Track[] = [
   { file: "holizna-dear-mr-super-computer.mp3", title: "Dear Mr Super Computer", artist: "Holizna", loops: 1 },
   { file: "holizna-50-over-the-speed-limit.mp3", title: "50 Over The Speed Limit", artist: "Holizna", loops: 1 },
   { file: "holizna-mutant-club.mp3", title: "Mutant Club", artist: "Holizna", loops: 1 },
@@ -60,3 +62,30 @@ export const PLAYLIST: Track[] = [
   { file: "tad-oceanside.mp3", title: "Oceanside", artist: "TAD", loops: 1 },
   { file: "holizna-not-it.mp3", title: "Not It", artist: "Holizna", loops: 1 },
 ];
+
+export const AMBIENT: Track[] = [
+  { file: "amb-joth-contemplation.mp3", title: "Contemplation", artist: "Joth", loops: 1 },
+  { file: "amb-cynic-calm-ambient-1.mp3", title: "Calm Ambient 1", artist: "cynicmusic", loops: 1 },
+  { file: "amb-ecrivain-meadow-thoughts.mp3", title: "Meadow Thoughts", artist: "Écrivain", loops: 1 },
+  { file: "amb-yoiyami-first-light-particles.mp3", title: "First Light Particles", artist: "Yoiyami", loops: 1 },
+  { file: "amb-adiutorium-daydream.mp3", title: "Daydream", artist: "Adiutorium", loops: 1 },
+  { file: "amb-isaiah658-ambient-relaxing-loop.mp3", title: "Ambient Relaxing Loop", artist: "isaiah658", loops: 5 },
+  { file: "amb-cynic-calm-piano.mp3", title: "Calm Piano 1", artist: "cynicmusic", loops: 1 },
+  { file: "amb-holizna-love.mp3", title: "Love", artist: "Holizna", loops: 1 },
+  { file: "amb-centurion-morning-sky.mp3", title: "Morning Sky", artist: "Centurion_of_war", loops: 1 },
+  { file: "amb-cynic-calm-ambient-2.mp3", title: "Calm Ambient 2", artist: "cynicmusic", loops: 1 },
+  { file: "amb-yoiyami-budding-of-consciousness.mp3", title: "The Budding of Consciousness", artist: "Yoiyami", loops: 1 },
+  { file: "amb-cynic-aquaria.mp3", title: "Aquaria", artist: "cynicmusic", loops: 3 },
+  { file: "amb-adiutorium-somnium.mp3", title: "Somnium", artist: "Adiutorium", loops: 1 },
+  { file: "amb-holizna-you-loved-me-once.mp3", title: "You Loved Me Once", artist: "Holizna", loops: 1 },
+  { file: "amb-cynic-calm-ambient-3.mp3", title: "Calm Ambient 3", artist: "cynicmusic", loops: 1 },
+  { file: "amb-isaiah658-heavenly-loop.mp3", title: "Heavenly Loop", artist: "isaiah658", loops: 4 },
+  { file: "amb-prosensory-dream-guitar.mp3", title: "Dream (Guitar)", artist: "Pro Sensory", loops: 1 },
+  { file: "amb-cynic-another-august.mp3", title: "Another August", artist: "cynicmusic", loops: 1 },
+  { file: "amb-centurion-lonely-night.mp3", title: "Lonely Night", artist: "Centurion_of_war", loops: 2 },
+  { file: "amb-holizna-lost-in-your-eyes.mp3", title: "Lost In Your Eyes", artist: "Holizna", loops: 1 },
+  { file: "amb-cynic-calm-relax.mp3", title: "Calm Relax 1", artist: "cynicmusic", loops: 1 },
+];
+
+export type MusicStyle = "beats" | "ambient";
+export const PLAYLISTS: Record<MusicStyle, Track[]> = { beats: BEATS, ambient: AMBIENT };
