@@ -144,6 +144,7 @@ function musicButton() {
   b.type = "button";
   b.setAttribute("aria-label", "Settings");
   b.setAttribute("aria-haspopup", "dialog");
+  b.title = "Settings";
 
   const pop = el("div", "snd-pop");
   pop.setAttribute("role", "dialog");
@@ -157,6 +158,7 @@ function musicButton() {
     r.min = "0";
     r.max = "100";
     r.value = String(Math.round(value * 100));
+    r.setAttribute("aria-label", label);
     const paint = () => r.style.setProperty("--p", `${r.value}%`);
     paint();
     r.addEventListener("input", () => {

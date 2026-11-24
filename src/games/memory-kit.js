@@ -234,7 +234,8 @@ export function openMemoryGame(container, game, { onExit, rules, hudExtra, name 
     lvl.append(down, levelLabel, up);
     hud.append(backBtn, hudMid, lvl);
     const gear = el("button", "mk-icon-btn mk-gear");
-    gear.setAttribute("aria-label", "Settings");
+    gear.setAttribute("aria-label", "Mode and start level");
+    gear.title = "Mode and start level";
     gear.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>';
     hud.appendChild(gear);
     gear.addEventListener("click", () => startRun(run.startLevel, true));

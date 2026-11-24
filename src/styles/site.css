@@ -17,6 +17,13 @@
   --a-good: #22e08a;
   --a-bad: #ff3d6e;
   --a-band: linear-gradient(120deg, var(--a-blue), var(--a-cyan));
+  /* the lip under a pressable button, and how tall it is */
+  --a-yellow-lip: #b89900;
+  --a-good-lip: #0f9a5c;
+  --a-bad-lip: #c41d4c;
+  --lip-h: 4px;
+  /* text on the white music card: secondary labels (5.9:1 on white) */
+  --a-card-dim: #56619a;
 
   /* the older layers read these */
   --s-bg: var(--a-bg);
@@ -56,8 +63,11 @@ body { min-height: 100dvh; }
   animation-delay: calc(var(--i) * 40ms);
 }
 @keyframes tile-in { from { opacity: 0; transform: translateY(12px) scale(0.96); } }
-.tile:hover { transform: translateY(-4px); border-color: var(--tint); box-shadow: 0 12px 34px color-mix(in srgb, var(--tint) 35%, transparent); background: var(--a-panel-2); }
-.tile:active { transform: scale(0.97); }
+.tile { --lip: var(--a-line); box-shadow: 0 5px 0 var(--lip); }
+@media (hover: hover) {
+  .tile:hover { --lip: color-mix(in srgb, var(--tint) 55%, var(--a-bg)); transform: translateY(-3px); border-color: var(--tint); box-shadow: 0 5px 0 var(--lip), 0 14px 34px color-mix(in srgb, var(--tint) 30%, transparent); background: var(--a-panel-2); }
+}
+.tile:active { transform: translateY(5px); box-shadow: 0 0 0 var(--lip); transition-duration: 0.03s; }
 .tile:focus-visible { outline: 3px solid var(--a-yellow); outline-offset: 3px; }
 .tile-icon { width: 64px; height: 64px; border-radius: 18px; background: var(--tint); color: var(--a-dark); display: grid; place-items: center; }
 .tile-icon svg { width: 34px; height: 34px; stroke-width: 2.2; }
@@ -153,13 +163,28 @@ body { min-height: 100dvh; }
 .mk-root.play .mk-pip.on, .mk-root.play .mk-pip.cur { background: var(--a-yellow); border-color: var(--a-yellow); box-shadow: none; }
 .mk-root.play .mk-readout { background: var(--a-blue); }
 
-/* buttons: yellow with dark text */
-.mk-root.play .mk-btn { background: var(--a-panel); border: 2px solid var(--a-line); color: var(--a-ink); border-radius: 14px; box-shadow: none; }
-.mk-root.play .mk-btn:hover:not(:disabled) { background: var(--a-panel-2); border-color: var(--a-cyan); }
+/* buttons: each one stands on a coloured lip and sinks into it when pressed,
+   so a tap feels like a real key. Yellow = the one main action on the screen. */
+.mk-root.play .mk-btn {
+  --lip: var(--a-line);
+  background: var(--a-panel); border: 2px solid var(--a-line); color: var(--a-ink); border-radius: 14px;
+  box-shadow: 0 var(--lip-h) 0 var(--lip);
+  transition: transform 0.09s ease, box-shadow 0.09s ease, background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+@media (hover: hover) {
+  .mk-root.play .mk-btn:hover:not(:disabled) { background: var(--a-panel-2); border-color: var(--a-cyan); }
+}
+/* on touch screens the last button tapped must not stay lit (it would look like a hint) */
+@media (hover: none) {
+  .mk-root.play .mk-btn:hover:not(:disabled) { border-color: var(--a-line); background: var(--a-panel); }
+}
+.mk-root.play .mk-btn:active:not(:disabled) { transform: translateY(var(--lip-h)); box-shadow: 0 0 0 var(--lip); transition-duration: 0.03s; }
+.mk-root.play .mk-btn:disabled { box-shadow: none; }
 .mk-root.play .mk-btn.primary,
-.mk-root.play .mk-btn.primary:hover:not(:disabled) { background: var(--a-yellow); border-color: var(--a-yellow); color: var(--a-dark); box-shadow: 0 4px 0 #b89900; }
-.mk-root.play .mk-btn.primary:hover:not(:disabled) { background: var(--a-yellow-hi); }
-.mk-root.play .mk-btn.primary.ready { box-shadow: 0 4px 0 #b89900, 0 0 0 4px rgba(255, 212, 0, 0.3); }
+.mk-root.play .mk-btn.primary:hover:not(:disabled) { --lip: var(--a-yellow-lip); background: var(--a-yellow); border-color: var(--a-yellow); color: var(--a-dark); }
+@media (hover: hover) { .mk-root.play .mk-btn.primary:hover:not(:disabled) { background: var(--a-yellow-hi); border-color: var(--a-yellow-hi); } }
+.mk-root.play .mk-btn.primary.ready { box-shadow: 0 var(--lip-h) 0 var(--lip), 0 0 0 4px rgba(255, 212, 0, 0.3); }
+.mk-root.play .mk-btn.primary.ready:active:not(:disabled) { box-shadow: 0 0 0 var(--lip), 0 0 0 4px rgba(255, 212, 0, 0.3); }
 .mk-root.play .mk-acc-btn.active { background: var(--a-yellow); color: var(--a-dark); }
 .mk-root.play .mk-acc { border-color: var(--a-line); }
 .mk-root.play .mk-tag { background: var(--a-blue); }
@@ -179,7 +204,7 @@ body { min-height: 100dvh; }
 
 /* ================= Note Rush ================= */
 .mk-root.play .nr-keytag { color: var(--a-blue); }
-.mk-root.play .nr-count { color: #6b77a8; }
+.mk-root.play .nr-count { color: var(--a-card-dim); }
 .mk-root.play .nr-hint { color: var(--a-dim); }
 
 /* ================= Interval Rush ================= */
@@ -189,7 +214,7 @@ body { min-height: 100dvh; }
 .ir-listen { display: flex; align-items: center; gap: 14px; transition: opacity 0.2s ease, transform 0.2s ease; }
 .ir-dot {
   width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
-  background: #eef2ff; color: #6b77a8; font-family: var(--font-mono); font-weight: 700; font-size: 22px;
+  background: #eef2ff; color: var(--a-card-dim); font-family: var(--font-mono); font-weight: 700; font-size: 22px;
   border: 3px solid #d5dcf5;
 }
 .ir-dot.ring { animation: ir-ring 0.5s ease-out; }
@@ -199,7 +224,7 @@ body { min-height: 100dvh; }
 }
 .ir-link { min-width: 70px; text-align: center; font-family: var(--font-ui); font-weight: 900; font-size: 34px; color: var(--a-blue); }
 .ir-listen.together { gap: 4px; }
-.ir-listen.together .ir-link { order: -1; position: absolute; top: 18px; left: 0; right: 0; font-size: 18px; color: #6b77a8; }
+.ir-listen.together .ir-link { order: -1; position: absolute; top: 18px; left: 0; right: 0; font-size: 18px; color: var(--a-card-dim); }
 .ir-reveal { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0 12px; }
 .ir-card.revealed .ir-listen, .ir-card.missed .ir-listen { opacity: 0; transform: scale(0.9); }
 .ir-card.revealed .ir-reveal, .ir-card.missed .ir-reveal { display: flex; animation: ir-in 0.22s ease both; }
@@ -208,22 +233,24 @@ body { min-height: 100dvh; }
 .ir-name { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
 .ir-name b { font-weight: 900; font-size: 26px; color: #0f9a5c; }
 .ir-card.missed .ir-name b { color: #e0174f; }
-.ir-name span { font-family: var(--font-mono); font-size: 14px; color: #6b77a8; }
+.ir-name span { font-family: var(--font-mono); font-size: 14px; color: var(--a-card-dim); }
 .ir-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); gap: 8px; }
 .ir-btn {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
   min-height: 70px; padding: 8px 4px; border-radius: 16px; cursor: pointer;
+  --lip: var(--a-line);
   background: var(--a-panel); border: 2px solid var(--a-line); color: var(--a-ink);
-  transition: transform 0.1s ease, background 0.12s ease, border-color 0.12s ease;
+  box-shadow: 0 var(--lip-h) 0 var(--lip);
+  transition: transform 0.09s ease, box-shadow 0.09s ease, background 0.12s ease, border-color 0.12s ease;
 }
-.ir-btn:hover { border-color: var(--a-cyan); background: var(--a-panel-2); }
-.ir-btn:active { transform: scale(0.96); }
+@media (hover: hover) { .ir-btn:hover { border-color: var(--a-cyan); background: var(--a-panel-2); } }
+.ir-btn:active { transform: translateY(var(--lip-h)); box-shadow: 0 0 0 var(--lip); transition-duration: 0.03s; }
 .ir-btn b { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
 .ir-btn span { font-size: 12px; color: var(--a-dim); }
-.ir-btn kbd { position: absolute; top: 5px; right: 6px; font-size: 10px !important; padding: 1px 4px !important; opacity: 0.6; }
-.ir-btn.good { background: var(--a-good); border-color: var(--a-good); color: var(--a-dark); }
-.ir-btn.bad { background: var(--a-bad); border-color: var(--a-bad); color: #fff; }
-.ir-btn.want { border-color: var(--a-yellow); box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.35); }
+.ir-btn kbd { position: absolute; top: 5px; right: 6px; font-size: 11px !important; padding: 1px 4px !important; opacity: 0.6; }
+.ir-btn.good { --lip: var(--a-good-lip); background: var(--a-good); border-color: var(--a-good); color: var(--a-dark); }
+.ir-btn.bad { --lip: var(--a-bad-lip); background: var(--a-bad); border-color: var(--a-bad); color: var(--a-dark); }
+.ir-btn.want { --lip: var(--a-yellow-lip); border-color: var(--a-yellow); box-shadow: 0 var(--lip-h) 0 var(--lip), 0 0 0 3px rgba(255, 212, 0, 0.35); }
 .ir-btn.good span, .ir-btn.bad span { color: inherit; }
 .ir-foot { display: flex; justify-content: center; }
 .ir-replay { min-width: 140px; }
@@ -231,16 +258,16 @@ body { min-height: 100dvh; }
 @media (max-width: 520px) {
   .ir-grid.wide { grid-template-columns: repeat(4, 1fr); }
   .ir-btn { min-height: 62px; }
-  .ir-btn span { font-size: 11px; }
+  .ir-btn span { font-size: 12px; }
 }
 /* with the intervals bigger than an octave: up to 24 buttons, 6 across */
-.ir-grid.dense { gap: 6px; }
+.ir-grid.dense { gap: 7px 6px; --lip-h: 3px; }
 .ir-grid.dense .ir-btn { min-height: 56px; padding: 6px 2px; border-radius: 13px; }
 .ir-grid.dense .ir-btn b { font-size: 19px; }
-.ir-grid.dense .ir-btn span { font-size: 10.5px; text-align: center; line-height: 1.1; }
-.ir-grid.dense .ir-btn kbd { top: 3px; right: 3px; font-size: 9px !important; padding: 0 3px !important; }
+.ir-grid.dense .ir-btn span { font-size: 11px; text-align: center; line-height: 1.1; }
+.ir-grid.dense .ir-btn kbd { top: 3px; right: 3px; font-size: 10px !important; padding: 0 3px !important; }
 @media (max-width: 520px) {
-  .ir-grid.dense { gap: 5px; }
+  .ir-grid.dense { gap: 6px 5px; }
   .ir-grid.dense .ir-btn { min-height: 46px; }
   .ir-grid.dense .ir-btn b { font-size: 17px; }
   .ir-grid.dense .ir-btn span { display: none; }
@@ -249,7 +276,7 @@ body { min-height: 100dvh; }
 
 /* ================= leftovers from the old palette ================= */
 .mk-root.play .mk-key.white { background: linear-gradient(180deg, #ffffff, #e9eefc); border-color: var(--a-dark); }
-.mk-root.play .mk-key-label { color: #6b77a8; }
+.mk-root.play .mk-key-label { color: var(--a-card-dim); }
 .mk-root.play .mk-key-label.c { color: var(--a-blue); }
 .mk-root.play .mk-key.lit.white, .mk-root.play .mk-key.aim.white { background: linear-gradient(180deg, #fff6b8, var(--a-yellow)); }
 .mk-root.play .mk-key.lit.black, .mk-root.play .mk-key.aim.black { background: var(--a-yellow); }
@@ -262,7 +289,7 @@ body { min-height: 100dvh; }
   border: 0;
 }
 .mk-root.play .pm-front { background: #fff; border-color: #d5dcf5; }
-.mk-root.play .pm-wave { color: #6b77a8; }
+.mk-root.play .pm-wave { color: var(--a-card-dim); }
 .mk-root.play .pm-card.unfound .pm-front { background: #eef2ff; }
 .mk-root.play .ph-say, .mk-root.play .ph-orb-text { font-family: var(--font-ui); font-weight: 900; color: var(--a-blue); }
 .mk-root.play .ph-orb-core { background: radial-gradient(circle at 40% 35%, #fff8c2, var(--a-yellow) 60%, #e6b800); box-shadow: 0 10px 30px rgba(255, 212, 0, 0.35); }
@@ -282,7 +309,7 @@ body { min-height: 100dvh; }
 
 /* tiny rules under each game */
 .mk-root.play .mk-rules { margin-top: 10px; padding: 12px 14px; border-radius: 14px; border: 1px dashed var(--a-line); color: var(--a-dim); font-size: 13.5px; line-height: 1.45; }
-.mk-root.play .mk-rules-h { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--a-cyan); margin-bottom: 4px; }
+.mk-root.play .mk-rules-h { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--a-cyan); margin-bottom: 4px; }
 .mk-root.play .mk-rules ul { margin: 0; padding-left: 18px; }
 .mk-root.play .mk-rules li::marker { color: var(--a-yellow); }
 /* the rules box replaces the games' own grey hint lines */
@@ -321,6 +348,8 @@ body { min-height: 100dvh; }
 .mk-root.play .mk-run[data-phase="intro"]:has(.mk-tuck.show) .mk-card::after {
   content: "Ready? Hit Play"; position: absolute; inset: 0; display: grid; place-items: center;
   font: 800 22px/1.2 var(--font-ui); color: var(--a-blue); letter-spacing: -0.01em; pointer-events: none;
+  /* covers what the card shows while idle (Interval Rush's 1 ? 2), so the words never sit on top of it */
+  z-index: 5; border-radius: inherit; background: rgba(255, 255, 255, 0.94);
 }
 /* Interval Rush: "Hear it" in that bar does what Replay does, so show just one */
 .mk-root.play .mk-run:has(.mk-tuck.show) .ir-replay { display: none; }
@@ -331,7 +360,7 @@ body { min-height: 100dvh; }
 .mk-root.play .mk-result.over .mk-next { display: none; }
 .mk-root.play .mk-result.over .mk-result-actions { justify-content: center; }
 .mk-root.play .mk-result.over .mk-result-actions:has(.mk-result-extra:empty) { display: none; }
-.mk-root.play .mk-result.over .mk-result-tip { text-align: center; color: var(--a-dim); font-weight: 600; padding: 0 34px; } /* clear of the × */
+.mk-root.play .mk-result.over .mk-result-tip { text-align: center; color: var(--a-dim); font-weight: 600; padding: 0 44px; } /* clear of the × */
 .mk-root.play .mk-over-title { font-weight: 900; font-size: 30px; letter-spacing: -0.01em; color: var(--a-ink); text-transform: uppercase; }
 .mk-root.play .mk-over-sub { color: var(--a-yellow); font-weight: 700; font-size: 16px; }
 .mk-root.play .mk-over-pick { display: flex; align-items: center; gap: 6px; background: var(--a-panel-2); border-radius: 12px; padding: 4px 6px 4px 12px; }
@@ -359,7 +388,7 @@ body { min-height: 100dvh; }
 .snd-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; align-items: center; font-size: 14px; color: var(--a-dim); font-weight: 600; }
 .snd-pct { font-size: 13px; color: var(--a-ink); }
 .snd-range {
-  grid-column: 1 / -1; width: 100%; height: 24px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer;
+  grid-column: 1 / -1; width: 100%; height: 32px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer;
 }
 .snd-range::-webkit-slider-runnable-track { height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--a-cyan) var(--p, 50%), var(--a-panel-2) var(--p, 50%)); }
 .snd-range::-moz-range-track { height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--a-cyan) var(--p, 50%), var(--a-panel-2) var(--p, 50%)); }
@@ -368,7 +397,7 @@ body { min-height: 100dvh; }
 .snd-now { font-size: 12.5px; color: var(--a-dim); min-height: 16px; }
 .snd-now:empty { display: none; }
 .snd-skip { height: 38px; border-radius: 12px; border: 2px solid var(--a-line); background: var(--a-panel-2); color: var(--a-ink); font: inherit; font-weight: 700; cursor: pointer; }
-.snd-skip:hover { border-color: var(--a-cyan); }
+@media (hover: hover) { .snd-skip:hover { border-color: var(--a-cyan); } }
 /* round over shows as a centred pop-up, so it is always on screen */
 .mk-root.play .mk-result.over {
   position: fixed; left: 50%; top: 50%; z-index: 60; transform: translate(-50%, -50%);
@@ -434,8 +463,8 @@ body { min-height: 100dvh; }
 .hx-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .hx-num { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px; background: var(--a-panel-2); }
 .hx-v { font-size: 20px; font-weight: 700; color: var(--a-yellow); line-height: 1.1; }
-.hx-l { font-size: 11px; color: var(--a-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
-.hx-board-h { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--a-cyan); margin: 0 2px 4px; }
+.hx-l { font-size: 12px; color: var(--a-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.hx-board-h { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--a-cyan); margin: 0 2px 4px; }
 .hx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .hx-row { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 10px; font-size: 14px; color: var(--a-ink); }
 .hx-row:nth-child(1) .hx-pos { color: var(--a-yellow); }
@@ -462,7 +491,7 @@ body { min-height: 100dvh; }
 /* close the round-over pop-up, and a small button to bring it back */
 .mk-root.play .mk-over-x { display: none; }
 .mk-root.play .mk-result.over .mk-over-x {
-  display: grid; place-items: center; position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; padding: 0;
+  display: grid; place-items: center; position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; padding: 0;
   border: 0; border-radius: 50%; background: var(--a-panel-2); color: var(--a-dim); font: 700 22px/1 var(--font-ui); cursor: pointer;
 }
 .mk-root.play .mk-result.over .mk-over-x:hover { color: var(--a-ink); }
@@ -513,7 +542,7 @@ body { min-height: 100dvh; }
 .doc a { color: var(--a-cyan); }
 .doc-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 6px; }
 .doc-btn { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 2px solid var(--a-line); background: var(--a-panel-2); color: var(--a-ink); font: inherit; font-weight: 700; cursor: pointer; }
-.doc-btn:hover { border-color: var(--a-cyan); }
+@media (hover: hover) { .doc-btn:hover { border-color: var(--a-cyan); } }
 .doc-btn:disabled { opacity: 0.6; cursor: progress; }
 .doc-status { color: var(--a-dim) !important; font-size: 14px !important; min-height: 22px; }
 
@@ -550,7 +579,7 @@ body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
 .snd-scenes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .snd-scene { display: flex; flex-direction: column; gap: 4px; padding: 4px 4px 6px; border-radius: 12px; border: 2px solid var(--a-line); background: var(--a-panel-2); color: var(--a-dim); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 .snd-scene i { display: block; height: 34px; border-radius: 8px; }
-.snd-scene:hover { color: var(--a-ink); border-color: var(--a-cyan); }
+@media (hover: hover) { .snd-scene:hover { color: var(--a-ink); border-color: var(--a-cyan); } }
 .snd-scene.on { border-color: var(--a-yellow); color: var(--a-ink); box-shadow: 0 0 0 2px rgba(255, 212, 0, 0.3); }
 /* ---- the scene behind the exercises ---- */
 .scene-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
@@ -638,11 +667,92 @@ body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
 @media (max-width: 380px) { .tile-blurb { font-size: 12px; } }
 /* Pitch Hold: the 1-2-3 steps and a bigger instruction */
 .mk-root.play .ph-steps { display: flex; justify-content: center; gap: 6px; margin: 0 auto 10px; width: 100%; max-width: 420px; }
-.mk-root.play .ph-step { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px; border-radius: 12px; background: #eef1fb; color: #8a93b8; font: 800 14px/1 var(--font-ui); transition: background 0.2s, color 0.2s; }
-.mk-root.play .ph-step b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #d9def2; color: #5b648a; font-size: 13px; flex: none; }
+.mk-root.play .ph-step { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px; border-radius: 12px; background: #eef1fb; color: #505a86; font: 800 14px/1 var(--font-ui); transition: background 0.2s, color 0.2s; }
+.mk-root.play .ph-step b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #d9def2; color: #3d4670; font-size: 13px; flex: none; }
 .mk-root.play .ph-step.on { background: var(--a-yellow); color: var(--a-dark); }
 .mk-root.play .ph-step.on b { background: var(--a-dark); color: var(--a-yellow); }
 .mk-root.play .ph-step.done { color: #4a5480; }
-.mk-root.play .ph-step.done b { background: #4caf7a; color: #fff; }
+.mk-root.play .ph-step.done b { background: #1d7a49; color: #fff; }
 .mk-root.play .ph-say { font-size: 24px; line-height: 1.2; min-height: 58px; display: grid; place-items: center; padding: 0 8px; }
 @media (max-width: 420px) { .mk-root.play .ph-say { font-size: 20px; } .mk-root.play .ph-step { font-size: 13px; } }
+
+/* ================= design pass: touch, focus, contrast, system settings ================= */
+/* The site is dark on purpose (the scenes are night and dusk), so native parts
+   (scrollbars, the number field) are dark too, whatever the phone is set to. */
+:root { color-scheme: dark !important; }
+
+/* numbers that count up keep their width, so nothing jiggles */
+.mk-root.play .mk-hud-level, .hx-v, .hx-lv, .hx-pos, .mk-root.play .mk-streak, .mk-root.play .nr-count,
+.snd-pct, .tile-best, .mk-root.play .mk-over-lv, .mk-root.play .mk-over-sub { font-variant-numeric: tabular-nums; }
+
+/* small labels: 12px at least (they were 11) */
+.mk-root.play .mk-section-label { font-size: 12px; }
+.mk-root.play .mk-key-label { font-size: 12px; }
+
+/* ---- touch targets: 44px where a thumb goes ----
+   Some controls look small on purpose (the top bar on a phone). They get an
+   invisible pad around them instead, so the look stays and the tap lands. */
+.mk-root.play .mk-hud :is(.mk-icon-btn, .music-btn, .mk-lvl-btn),
+.mk-root.play .mk-link, .hx-share, .snd-style-btn, .snd-toggle, .keys-x { position: relative; }
+.mk-root.play .mk-hud :is(.mk-icon-btn, .music-btn, .mk-lvl-btn)::after,
+.mk-root.play .mk-link::after, .hx-share::after, .snd-style-btn::after, .snd-toggle::after, .keys-x::after {
+  content: ""; position: absolute; inset: -4px 0;
+}
+.mk-root.play .mk-link::after { inset: -10px -4px; }
+.hx-share::after { inset: -10px -2px; }
+@media (max-width: 400px) {
+  /* level arrows were 20px wide on a phone: 28px now (Apple's floor), the title still fits */
+  .mk-root.play .mk-lvl-btn { width: 28px; }
+}
+@media (max-width: 370px) {
+  .mk-root.play .mk-hud { gap: 3px; }
+  .mk-root.play .mk-hud-title { font-size: 14px; }
+}
+/* the level picker in the pop-ups */
+.mk-root.play .mk-over-pick { padding: 4px; gap: 4px; }
+.mk-root.play .mk-over-pick .mk-lvl-btn { width: 44px; height: 44px; border-radius: 10px; }
+.mk-root.play .mk-over-label { padding-left: 8px; }
+.mk-root.play .mk-over-lv { height: 44px; }
+/* sound panel */
+.snd-toggle { height: 40px; min-width: 68px; }
+.snd-style-btn { height: 40px; }
+.snd-skip { height: 44px; }
+.keys-x { height: 40px; }
+.keys-seg button { height: 44px; }
+/* leaderboard: join */
+.hx-join .hx-name-in { height: 44px; }
+.hx-join-btn { height: 44px; padding: 0 18px; }
+/* links: tall enough to tap, same look */
+.home-foot { gap: 0 8px; margin-top: 22px; }
+.home-foot a { display: inline-block; padding: 12px 6px; }
+.doc-back { padding: 12px 0; margin: -12px 0 6px; }
+
+/* ---- focus: always visible, always in a colour that stands out from what is behind it ---- */
+:focus-visible { outline-color: var(--a-yellow); }
+/* the top bar runs from blue to cyan: a navy ring is 3:1 or better on both ends */
+.mk-root.play .mk-hud :focus-visible { outline-color: var(--a-dark); outline-offset: 1px; }
+/* on white (the music card, white keys, the key picker) the ring is blue */
+.mk-root.play .mk-card :focus-visible, .keys-note:not(.sharp):focus-visible { outline-color: var(--a-blue); }
+
+/* ---- the phone's own settings ---- */
+/* Increase contrast: brighter secondary text and edges, solid panels */
+@media (prefers-contrast: more) {
+  :root { --a-dim: #c3cbef; --a-line: #4b5cab; }
+  .home .tile, .mk-root.play .mk-rules, .mk-root.play .mk-status:has(.mk-status-text:not(:empty)) { background: var(--a-panel) !important; }
+  .scene-bg::after { background: rgba(11, 16, 38, 0.55); }
+}
+/* Reduce transparency: no frosted glass, solid surfaces instead */
+@media (prefers-reduced-transparency: reduce) {
+  .home .tile, .mk-root.play .mk-status:has(.mk-status-text:not(:empty)), .mk-root.play .mk-rules {
+    background: var(--a-panel) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  }
+}
+/* Reduce motion: buttons still press (that is feedback, not decoration), tiles stop lifting */
+@media (prefers-reduced-motion: reduce) {
+  .tile:hover { transform: none; }
+}
+/* Windows high contrast: the browser repaints everything; keep edges on the custom buttons */
+@media (forced-colors: active) {
+  .mk-root.play .mk-btn, .ir-btn, .tile, .music-btn, .snd-toggle, .snd-style-btn { border: 2px solid ButtonText; }
+  .mk-root.play .mk-btn, .ir-btn, .tile { box-shadow: none; }
+}
