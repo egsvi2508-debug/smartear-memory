@@ -30,6 +30,8 @@ interface Game {
   name: string;
   tint: string;
   icon: string;
+  /** What it trains, in a few words, under the name on the home page. */
+  blurb: string;
   rules: string[];
   load: () => Promise<{ open: Opener }>;
 }
@@ -37,14 +39,14 @@ interface Game {
 const svg = (body: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 const GAMES: Game[] = [
-  { id: "note-rush", name: "Note Rush", tint: "#ffd400", rules: ["Name the note before the bar runs out.", "The key signature counts.", "Two notes: lowest first."], icon: svg('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'), load: () => import("./games/note-rush.js") },
-  { id: "interval-rush", name: "Interval Rush", tint: "#00c2ff", rules: ["Two notes play. Name the interval.", "Number keys count half steps: 4 = M3, 7 = P5.", "From level 10: intervals bigger than an octave. The letter row under the numbers adds an octave: R = M10, U = P12."], icon: svg('<circle cx="7" cy="17" r="3"/><circle cx="17" cy="9" r="3"/><path d="M10 17V5l10-2v6"/>'), load: () => import("./games/interval-rush.js") },
-  { id: "visual-memory", name: "Visual", tint: "#5cf2a6", rules: ["Notes flash, then hide.", "Tap the staff where they were."], icon: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), load: () => import("./games/visual-memory.js") },
-  { id: "sequence-memory", name: "Sequence", tint: "#ff6b9a", rules: ["A melody plays. Play it back in order.", "Each level adds one note."], icon: svg('<path d="M4 18V14M10 18V10M16 18V6M22 18V3"/>'), load: () => import("./games/sequence-memory.js") },
-  { id: "pairs-memory", name: "Pairs", tint: "#b49bff", rules: ["Tap a card to hear it.", "Find the two cards with the same sound.", "Missing on cards you've never heard is free. Only misses you could have avoided count."], icon: svg('<rect x="3" y="5" width="8" height="14" rx="2"/><rect x="13" y="5" width="8" height="14" rx="2"/>'), load: () => import("./games/pairs-memory.js") },
-  { id: "hold-memory", name: "Pitch Hold", tint: "#ffa23a", rules: ["1 · Listen: remember the note.", "2 · Hold it in your head while other notes play. Don't sing or hum.", "3 · Slide to your note and tap Lock in."], icon: svg('<path d="M12 3v10"/><circle cx="12" cy="17" r="4"/>'), load: () => import("./games/hold-memory.js") },
-  { id: "memory", name: "Compare", tint: "#4de2e8", rules: ["A melody plays twice.", "Same? Or tap the note that changed."], icon: svg('<path d="M3 9h18M3 15h18"/><circle cx="15" cy="9" r="2" fill="currentColor"/>'), load: () => import("./games/memory.js") },
-  { id: "relative-memory", name: "Relative", tint: "#c6f24d", rules: ["A melody plays, then again in a new key.", "Same tune? Or tap the note that changed."], icon: svg('<path d="M4 17l6-6 4 4 6-7"/><path d="M15 8h5v5"/>'), load: () => import("./games/memory.js").then((m) => ({ open: m.openRelative as Opener })) },
+  { id: "note-rush", name: "Note Rush", tint: "#ffd400", blurb: "Read notes, fast", rules: ["Name the note before the bar runs out.", "The key signature counts.", "Two notes: lowest first."], icon: svg('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'), load: () => import("./games/note-rush.js") },
+  { id: "interval-rush", name: "Interval Rush", tint: "#00c2ff", blurb: "Name intervals by ear", rules: ["Two notes play. Name the interval.", "Number keys count half steps: 4 = M3, 7 = P5.", "From level 10: intervals bigger than an octave. The letter row under the numbers adds an octave: R = M10, U = P12."], icon: svg('<circle cx="7" cy="17" r="3"/><circle cx="17" cy="9" r="3"/><path d="M10 17V5l10-2v6"/>'), load: () => import("./games/interval-rush.js") },
+  { id: "visual-memory", name: "Visual", tint: "#5cf2a6", blurb: "Recall notes you saw", rules: ["Notes flash, then hide.", "Tap the staff where they were."], icon: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), load: () => import("./games/visual-memory.js") },
+  { id: "sequence-memory", name: "Sequence", tint: "#ff6b9a", blurb: "Play back a melody", rules: ["A melody plays. Play it back in order.", "Each level adds one note."], icon: svg('<path d="M4 18V14M10 18V10M16 18V6M22 18V3"/>'), load: () => import("./games/sequence-memory.js") },
+  { id: "pairs-memory", name: "Pairs", tint: "#b49bff", blurb: "Match notes by sound", rules: ["Tap a card to hear it.", "Find the two cards with the same sound.", "Missing on cards you've never heard is free. Only misses you could have avoided count."], icon: svg('<rect x="3" y="5" width="8" height="14" rx="2"/><rect x="13" y="5" width="8" height="14" rx="2"/>'), load: () => import("./games/pairs-memory.js") },
+  { id: "hold-memory", name: "Pitch Hold", tint: "#ffa23a", blurb: "Hold a pitch in mind", rules: ["1 · Listen: remember the note.", "2 · Hold it in your head while other notes play. Don't sing or hum.", "3 · Slide to your note and tap Lock in."], icon: svg('<path d="M12 3v10"/><circle cx="12" cy="17" r="4"/>'), load: () => import("./games/hold-memory.js") },
+  { id: "memory", name: "Compare", tint: "#4de2e8", blurb: "Spot the changed note", rules: ["A melody plays twice.", "Same? Or tap the note that changed."], icon: svg('<path d="M3 9h18M3 15h18"/><circle cx="15" cy="9" r="2" fill="currentColor"/>'), load: () => import("./games/memory.js") },
+  { id: "relative-memory", name: "Relative", tint: "#c6f24d", blurb: "Same tune, new key?", rules: ["A melody plays, then again in a new key.", "Same tune? Or tap the note that changed."], icon: svg('<path d="M4 17l6-6 4 4 6-7"/><path d="M15 8h5v5"/>'), load: () => import("./games/memory.js").then((m) => ({ open: m.openRelative as Opener })) },
 ];
 
 const app = document.getElementById("app")!;
@@ -85,7 +87,7 @@ function showHome() {
     a.style.setProperty("--i", String(i));
     const icon = el("span", "tile-icon");
     icon.innerHTML = g.icon;
-    a.append(icon, el("span", "tile-name", g.name));
+    a.append(icon, el("span", "tile-name", g.name), el("span", "tile-blurb", g.blurb));
     const s = getStats(g.id);
     if (s.bestLevel || s.bestStreak) a.append(el("span", "tile-best mono", s.bestLevel ? `Lv ${s.bestLevel}` : `×${s.bestStreak}`));
     a.addEventListener("click", () => void ensureAudio().catch(() => {}));
@@ -98,6 +100,7 @@ function showHome() {
   foot.append(Object.assign(el("a", "", "Feedback"), { href: "https://github.com/egsvi2508-debug/smartear-memory/issues", target: "_blank", rel: "noopener" }));
   main.append(head, el("p", "home-tag", "Train your ears. Pick a game and play."), grid, foot);
   app.append(main);
+  showScene(app);
   window.scrollTo(0, 0);
 }
 

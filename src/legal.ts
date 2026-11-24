@@ -7,7 +7,7 @@ import { boardJoined, setBoardJoined, clearLocalData } from "./lib/stats";
 export const DOCS = { privacy: "Privacy", terms: "Terms", credits: "Credits" } as const;
 export type Doc = keyof typeof DOCS;
 
-const UPDATED = "23 November 2026";
+const UPDATED = "24 November 2026";
 const REPO = "https://github.com/egsvi2508-debug/smartear-memory";
 const CONTACT = `${REPO}/issues`;
 
@@ -49,7 +49,7 @@ function privacy(body: HTMLElement) {
     ]),
     p("To provide this, Google processes your IP address and basic device information, possibly in the USA (Google is certified under the EU-US Data Privacy Framework). Joining is based on your consent (Art. 6(1)(a) GDPR); showing the board to visitors is based on our legitimate interest in running the game (Art. 6(1)(f)). You can withdraw at any time with Leave the board below: it deletes your entries and the anonymous sign-in. See [Firebase privacy](https://firebase.google.com/support/privacy)."),
     h("h2", "Hosting"),
-    p("The site is hosted on GitHub Pages (GitHub, Inc.). Like any web server, it receives your IP address when your browser loads a page, and may keep it in security logs. See the [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement). The piano and beach sounds and the fonts are all served from this site. The only other company your browser contacts is Google, for the leaderboard (see above)."),
+    p("The site is hosted on GitHub Pages (GitHub, Inc.). Like any web server, it receives your IP address when your browser loads a page, and may keep it in security logs. See the [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement). The piano, the background sounds and the fonts are all served from this site. The only other company your browser contacts is Google, for the leaderboard (see above)."),
     h("h2", "Your rights"),
     p("Under the GDPR you can ask to see, correct or delete your data, object to its use, and complain to a data protection authority. Most of it you can do yourself, right here:"),
   );
@@ -110,7 +110,7 @@ function terms(body: HTMLElement) {
     ]),
     p("By joining the board you allow your chosen name and best scores to be shown publicly. You can leave at any time on the [Privacy page](#/privacy)."),
     h("h2", "The background sound"),
-    p("The background sound (the beats and every scene's sounds) is free to use in your own videos and reels, no credit needed. Other parts of the site have their own licences, listed on the [Credits page](#/credits)."),
+    p("The beats and the sounds of the beach, forest, rainy city, snowy peaks and desert scenes are free to use in your own videos and reels, no credit needed: they are public domain or made by this site. The deep space sounds are real spacecraft recordings shared under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): if you use them, credit \"NASA/JPL/University of Iowa\". Other parts of the site have their own licences, listed on the [Credits page](#/credits)."),
     h("h2", "Liability"),
     p("To the extent the law allows, the publisher is not liable for any loss arising from use of the site. Nothing here limits liability that cannot be limited by law, such as for intent or gross negligence."),
     h("h2", "Contact"),
@@ -119,10 +119,20 @@ function terms(body: HTMLElement) {
 }
 
 function credits(body: HTMLElement) {
-  const oga = "https://opengameart.org/content/";
+  const wm = "https://commons.wikimedia.org/wiki/File:";
+  const yell = "https://www.nps.gov/yell/learn/photosmultimedia/soundlibrary.htm";
+  const nps = "https://www.nps.gov/subjects/sound/gallery.htm";
   body.append(
     h("h2", "Background sound"),
-    p("The beats and the sounds of the forest, rainy city, snowy peaks, desert and deep space scenes are made live by this site's own code, as are the scenes' pictures. The beach waves are public domain (CC0) recordings: [Beach Ocean Waves](https://opengameart.org/content/beach-ocean-waves) (Alki Beach, recorded by jasinski) and [Water Waves](https://opengameart.org/content/water-waves) (recorded by transitking), both cut by qubodup. The sea wash under them is made live too."),
+    p("The beats are made live by this site's own code, as are the scenes' pictures and the beach's soft sea wash. Every other sound is a real recording, cut, cleaned and levelled for this site:"),
+    list([
+      "Beach: waves from [Beach Ocean Waves](https://opengameart.org/content/beach-ocean-waves) (Alki Beach, recorded by jasinski) and [Water Waves](https://opengameart.org/content/water-waves) (recorded by transitking), both cut by qubodup. Public domain (CC0).",
+      `Forest: birds from [Waidachswald Oberschefflenz Abend](${wm}Waidachswald_Oberschefflenz_Abend_20250616_2005.ogg) by Evillan (CC0); wind in the trees from the [Yellowstone sound library](${yell}) (NPS/Peter Comley, public domain).`,
+      `Rainy city: [Light Rain Distant Thunder](${wm}Light_Rain_Distant_Thunder_July_5th_2016.wav) by kvgarlic (CC0), [Rain against the window](${wm}Rain_against_the_window.ogg) by cori (public domain) and [Urban Street on a Rainy Afternoon](${wm}Urban_Street_on_a_Rainy_Afternoon.flac) by Extemporalist (CC0); thunder from the [National Park Service sound gallery](${nps}) and the [Yellowstone sound library](${yell}) (public domain).`,
+      `Snowy peaks: wind from the [Yellowstone sound library](${yell}) (NPS/Peter Comley; NPS & MSU Acoustic Atlas/Jennifer Jerrett), public domain.`,
+      `Desert: crickets from the [National Park Service sound gallery](${nps}) and wind from the [Yellowstone sound library](${yell}), public domain.`,
+      "Deep space: real spacecraft recordings by NASA/JPL/University of Iowa, licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): Juno [crossing Jupiter's bow shock](https://space.physics.uiowa.edu/plasma-wave/juno/audio/201606/jno-bshock-16-176-0700-0900-blk.html) (2016), Cassini in [the gap between Saturn and its rings](https://space.physics.uiowa.edu/space-audio/cassini/rev271rpx) (2017) and Cassini [crossing Saturn's ring plane](https://space.physics.uiowa.edu/space-audio/cassini/ring-plane). Changed here: slowed down, filtered and cut.",
+    ]),
     h("h2", "Piano"),
     p("[Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm, licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Samples as prepared by the Tone.js project, unchanged."),
     h("h2", "Fonts"),

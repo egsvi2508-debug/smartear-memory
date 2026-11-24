@@ -1,8 +1,9 @@
-// music.ts: background sound, two layers, both made live in the browser:
-//   beat     , an extremely basic drum beat, no melody, endless
-//   ambience , the sound of the chosen scene (scenes.ts): beach waves, forest
-//              birds, rain on a city, wind on snowy peaks, desert crickets,
-//              deep space. Random moments over a soft bed, so it never repeats.
+// music.ts: background sound, two layers:
+//   beat     , an extremely basic drum beat made live in the browser, no melody
+//   ambience , the sound of the chosen scene (scenes.ts), from real field
+//              recordings: beach waves, forest birds, rain on a city, wind on
+//              snowy peaks, desert crickets, spacecraft recordings of space.
+//              Long layers that loop out of step, so it never repeats.
 // Every scene has its own beat too; "Next rhythm" steps through all of them.
 // Nothing pitched in the ambience (no bells, no pads): it must never get in
 // the way of the notes the games ask you to hear.
@@ -206,7 +207,11 @@ function stopRhythm() {
 }
 
 // ---------------------------------------------------------------- ambience
-// Each scene builds its sound out of a few pieces and returns how to stop it.
+// The beach is recorded waves at random moments over a soft sea wash. Every
+// other scene is real field recordings (public/ambience): two or three long
+// beds, each looping on its own with slow crossfades from a random spot, so
+// the layers never line up the same way twice, plus rare one-off moments
+// (thunder over the city, dust hitting a spacecraft).
 type Stop = () => void;
 let stopAmb: Stop | null = null;
 let ambScene: SceneId | null = null;
@@ -214,10 +219,18 @@ let ambScene: SceneId | null = null;
 function kit() {
   const stops: Stop[] = [];
   const timers: ReturnType<typeof setTimeout>[] = [];
+  let dead = false;
   const rand = (a: number, b: number) => a + Math.random() * (b - a);
   return {
     rand,
-    /** Endless filtered noise (wind, rain, sea wash, rumble). */
+    alive: () => !dead,
+    onStop(f: Stop) {
+      stops.push(f);
+    },
+    later(ms: number, fn: () => void) {
+      timers.push(setTimeout(() => !dead && fn(), Math.max(0, ms)));
+    },
+    /** Endless filtered noise (the sea wash). */
     bed(type: BiquadFilterType, freq: number, q: number, gain: number, buf = noise) {
       const s = ac!.createBufferSource();
       s.buffer = buf;
@@ -247,63 +260,24 @@ function kit() {
     },
     /** Run fn at random moments, between a and b ms apart. */
     every(a: number, b: number, fn: () => void) {
-      const loop = () => {
+      const loop = () =>
         timers.push(
           setTimeout(() => {
+            if (dead) return;
             fn();
             loop();
           }, rand(a, b)),
         );
-      };
       loop();
     },
-    /** A one-off noise swell (gust, whoosh, thunder). */
-    swell(type: BiquadFilterType, f0: number, f1: number, q: number, peak: number, up: number, down: number, pan = 0) {
-      const t = ac!.currentTime;
-      const s = ac!.createBufferSource();
-      s.buffer = noise;
-      s.loop = true;
-      const f = ac!.createBiquadFilter();
-      f.type = type;
-      f.Q.value = q;
-      f.frequency.setValueAtTime(f0, t);
-      f.frequency.exponentialRampToValueAtTime(f1, t + up + down);
-      const g = ac!.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(peak, t + up);
-      g.gain.linearRampToValueAtTime(0.0001, t + up + down);
-      const p = "createStereoPanner" in ac! ? ac!.createStereoPanner() : null;
-      if (p) {
-        p.pan.setValueAtTime(-pan, t);
-        p.pan.linearRampToValueAtTime(pan, t + up + down);
-      }
-      s.connect(f).connect(g);
-      (p ? g.connect(p) : g).connect(amb!);
-      s.start(t, Math.random() * 3);
-      s.stop(t + up + down + 0.1);
-    },
-    /** A short sine blip (birds, crickets), far above the notes the games use. */
-    chirp(t: number, f0: number, f1: number, len: number, vol: number, pan: number) {
-      const o = ac!.createOscillator();
-      const g = ac!.createGain();
-      o.frequency.setValueAtTime(f0, t);
-      o.frequency.exponentialRampToValueAtTime(f1, t + len);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(vol, t + Math.min(0.012, len / 3));
-      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-      const p = "createStereoPanner" in ac! ? ac!.createStereoPanner() : null;
-      if (p) p.pan.value = pan;
-      o.connect(g);
-      (p ? g.connect(p) : g).connect(amb!);
-      o.start(t);
-      o.stop(t + len + 0.02);
-    },
     stop() {
+      dead = true;
       timers.forEach(clearTimeout);
       stops.forEach((f) => f());
     },
   };
 }
+type Kit = ReturnType<typeof kit>;
 
 // The beach: recorded waves (CC0, public/beach) at random moments over a sea wash.
 let waves: AudioBuffer[] | null = null;
@@ -329,82 +303,165 @@ function playWave() {
   s.playbackRate.value = 0.9 + Math.random() * 0.15;
   const g = ac.createGain();
   g.gain.value = 0.55 + Math.random() * 0.45;
-  const p = ac.createStereoPanner ? ac.createStereoPanner() : null;
+  const p = "createStereoPanner" in ac ? ac.createStereoPanner() : null;
   if (p) p.pan.value = Math.random() * 0.8 - 0.4;
   s.connect(g);
   (p ? g.connect(p) : g).connect(amb!);
   s.start();
 }
+function beach(k: Kit) {
+  loadWaves().then(playWave);
+  const wash = k.bed("lowpass", 420, 0.7, 0.12);
+  k.drift(wash.g.gain, 0.06, 0.2, 6000);
+  k.every(2500, 7000, playWave);
+}
 
-const AMBIENCE: Record<SceneId, (k: ReturnType<typeof kit>) => void> = {
-  beach(k) {
-    loadWaves().then(playWave);
-    const wash = k.bed("lowpass", 420, 0.7, 0.12);
-    k.drift(wash.g.gain, 0.06, 0.2, 6000);
-    k.every(2500, 7000, playWave);
+// The other five scenes, from field recordings. Every file is cut, cleaned of
+// hum and levelled offline; gain sets how it sits in its scene.
+type Bed = { file: string; gain: number };
+type Moments = { files: string[]; every: [number, number]; gain: [number, number] };
+type Recorded = { beds: Bed[]; moments?: Moments };
+const RECORDED: Record<Exclude<SceneId, "beach">, Recorded> = {
+  // a woodland in the evening: birdsong, and wind in the trees
+  forest: { beds: [{ file: "forest/birds", gain: 1 }, { file: "forest/leaves", gain: 0.4 }] },
+  // steady rain, drops on a window, a wet street, and now and then the storm
+  city: {
+    beds: [
+      { file: "city/rain", gain: 0.9 },
+      { file: "city/drops", gain: 0.55 },
+      { file: "city/street", gain: 0.6 },
+    ],
+    moments: { files: ["city/thunder-1", "city/thunder-2", "city/thunder-3"], every: [28000, 65000], gain: [0.55, 0.95] },
   },
-  forest(k) {
-    const leaves = k.bed("bandpass", 1100, 0.5, 0.05);
-    k.drift(leaves.g.gain, 0.02, 0.08, 5000);
-    k.bed("lowpass", 300, 0.7, 0.05);
-    // birds: little phrases of 2-6 chirps, high up, left or right
-    k.every(1400, 5200, () => {
-      const t = ac!.currentTime;
-      const f = k.rand(2600, 4400);
-      const pan = k.rand(-0.8, 0.8);
-      const n = 2 + Math.floor(Math.random() * 5);
-      const up = Math.random() < 0.5;
-      for (let i = 0; i < n; i++) {
-        const at = t + i * k.rand(0.09, 0.17);
-        const ff = f * k.rand(0.92, 1.08);
-        k.chirp(at, ff, up ? ff * 1.35 : ff * 0.75, k.rand(0.05, 0.09), 0.05, pan);
-      }
-    });
-  },
-  city(k) {
-    k.bed("bandpass", 2600, 0.4, 0.13); // the rain
-    const drops = k.bed("highpass", 1500, 0.7, 0.35, dust);
-    k.drift(drops.g.gain, 0.2, 0.45, 4000);
-    k.bed("lowpass", 160, 0.7, 0.06); // the city far away
-    k.every(22000, 48000, () => k.swell("lowpass", 140, 60, 1, 0.45, 0.6, 4.5)); // thunder
-  },
-  snow(k) {
-    const a = k.bed("bandpass", 450, 6, 0.06);
-    const b = k.bed("bandpass", 800, 7, 0.04);
-    k.drift(a.f.frequency, 260, 700, 4500);
-    k.drift(b.f.frequency, 500, 1100, 3500);
-    k.drift(a.g.gain, 0.02, 0.09, 4500);
-    k.bed("lowpass", 250, 0.7, 0.05);
-    k.every(7000, 16000, () => k.swell("bandpass", 600, 1500, 1.2, 0.09, 1.5, 2.8, k.rand(-0.7, 0.7))); // gusts
-  },
-  desert(k) {
-    const wind = k.bed("lowpass", 420, 0.8, 0.06);
-    k.drift(wind.g.gain, 0.03, 0.09, 5000);
-    // two crickets, each with its own pace and side
-    for (const [pace, pan, f] of [[800, -0.6, 4700], [1150, 0.5, 5200]] as const)
-      k.every(pace * 0.85, pace * 1.15, () => {
-        const t = ac!.currentTime;
-        for (let i = 0; i < 4; i++) k.chirp(t + i * 0.045, f, f * 0.98, 0.03, 0.022, pan);
-      });
-  },
-  space(k) {
-    const rumble = k.bed("lowpass", 150, 0.8, 0.3);
-    k.drift(rumble.g.gain, 0.18, 0.36, 7000);
-    const wind = k.bed("bandpass", 600, 9, 0.03); // solar wind
-    k.drift(wind.f.frequency, 250, 1800, 6000);
-    k.every(9000, 20000, () => k.swell("bandpass", 300, 2600, 2, 0.08, 1.2, 1.6, k.rand(0.5, 0.9))); // a comet passing
+  // strong wind high in the pines, and gusts around a cabin
+  snow: { beds: [{ file: "snow/wind", gain: 1 }, { file: "snow/blizzard", gain: 0.65 }] },
+  // dusk: crickets, and a low dry wind
+  desert: { beds: [{ file: "desert/crickets", gain: 0.9 }, { file: "desert/wind", gain: 0.75 }] },
+  // real spacecraft recordings (plasma waves turned into sound), and the dust
+  // of Saturn's rings hitting Cassini
+  space: {
+    beds: [{ file: "space/roar", gain: 0.9 }, { file: "space/hiss", gain: 0.8 }],
+    moments: { files: ["space/dust-1", "space/dust-2"], every: [35000, 75000], gain: [0.45, 0.75] },
   },
 };
 
+// Decoded recordings are big, so only the current scene's are kept.
+const clips = new Map<string, Promise<AudioBuffer | null>>();
+function clip(file: string): Promise<AudioBuffer | null> {
+  let p = clips.get(file);
+  if (!p) {
+    p = fetch(`${base()}ambience/${file}.mp3`)
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.arrayBuffer();
+      })
+      .then((b) => ac!.decodeAudioData(b))
+      .catch(() => {
+        clips.delete(file); // offline: try again next time
+        return null;
+      });
+    clips.set(file, p);
+  }
+  return p;
+}
+
+// Equal-power crossfade curves: two unrelated sounds stay at one loudness.
+const FADE_IN = new Float32Array(64).map((_, i) => Math.sin(((i / 63) * Math.PI) / 2));
+const FADE_OUT = FADE_IN.slice().reverse();
+
+/** One recording, forever: each pass starts at a random spot and fades in over the end of the one before. */
+function loopBed(k: Kit, buf: AudioBuffer, level: number, bus: GainNode, playing: Set<AudioBufferSourceNode>) {
+  const out = ac!.createGain();
+  out.gain.value = level;
+  out.connect(bus);
+  const xf = Math.min(4, buf.duration / 4);
+  const end = buf.duration - 0.5; // skip the short fades baked into the files
+  const pass = (at: number, fade: number) => {
+    const t = Math.max(at, ac!.currentTime + 0.02);
+    const off = 0.5 + Math.random() * Math.max(0, end - 0.5 - 3 * xf);
+    const len = end - off;
+    const s = ac!.createBufferSource();
+    s.buffer = buf;
+    const g = ac!.createGain();
+    g.gain.value = 0;
+    g.gain.setValueCurveAtTime(FADE_IN, t, Math.min(fade, len - xf - 0.05));
+    g.gain.setValueCurveAtTime(FADE_OUT, t + len - xf, xf);
+    s.connect(g).connect(out);
+    s.start(t, off, len);
+    playing.add(s);
+    s.onended = () => {
+      playing.delete(s);
+      g.disconnect();
+    };
+    const next = t + len - xf;
+    k.later((next - ac!.currentTime - 1.5) * 1000, () => pass(next, xf));
+  };
+  pass(ac!.currentTime + 0.05, 2.5);
+}
+
+/** Rare one-off sounds at random moments, never the same one twice in a row. */
+function moments(k: Kit, m: Moments, bus: GainNode, playing: Set<AudioBufferSourceNode>) {
+  let last = -1;
+  k.every(m.every[0], m.every[1], () => {
+    let i = Math.floor(Math.random() * m.files.length);
+    if (i === last && m.files.length > 1) i = (i + 1) % m.files.length;
+    last = i;
+    clip(m.files[i]).then((buf) => {
+      if (!buf || !k.alive()) return;
+      const s = ac!.createBufferSource();
+      s.buffer = buf;
+      s.playbackRate.value = k.rand(0.93, 1.04);
+      const g = ac!.createGain();
+      g.gain.value = k.rand(m.gain[0], m.gain[1]);
+      s.connect(g);
+      if ("createStereoPanner" in ac!) {
+        const p = ac!.createStereoPanner();
+        p.pan.value = k.rand(-0.6, 0.6);
+        g.connect(p).connect(bus);
+      } else g.connect(bus);
+      s.start();
+      playing.add(s);
+      s.onended = () => playing.delete(s);
+    });
+  });
+}
+
+function recorded(k: Kit, sc: Recorded) {
+  const files = [...sc.beds.map((b) => b.file), ...(sc.moments?.files ?? [])];
+  for (const f of clips.keys()) if (!files.includes(f)) clips.delete(f);
+  const bus = ac!.createGain();
+  bus.connect(amb!);
+  const playing = new Set<AudioBufferSourceNode>();
+  for (const b of sc.beds) clip(b.file).then((buf) => buf && k.alive() && loopBed(k, buf, b.gain, bus, playing));
+  if (sc.moments) {
+    clip(sc.moments.files[0]); // fetch ahead, so the first one is ready
+    moments(k, sc.moments, bus, playing);
+  }
+  k.onStop(() => {
+    bus.gain.setTargetAtTime(0, ac!.currentTime, 0.08);
+    setTimeout(() => {
+      playing.forEach((s) => {
+        try {
+          s.stop();
+        } catch {
+          /* already over */
+        }
+      });
+      bus.disconnect();
+    }, 500);
+  });
+}
+
 // How loud each scene's sounds sit, so they all come out about as loud as the beach.
-const TRIM: Record<SceneId, number> = { beach: 1, forest: 4, city: 2.2, snow: 3.2, desert: 10, space: 4 };
+const TRIM: Record<SceneId, number> = { beach: 1, forest: 0.85, city: 0.8, snow: 0.8, desert: 0.8, space: 0.55 };
 
 function startAmbience() {
   if (!ac || stopAmb) return;
   ambScene = sceneId();
   amb!.gain.setValueAtTime(TRIM[ambScene], ac.currentTime);
   const k = kit();
-  AMBIENCE[ambScene](k);
+  if (ambScene === "beach") beach(k);
+  else recorded(k, RECORDED[ambScene]);
   stopAmb = k.stop;
 }
 function stopAmbience() {
