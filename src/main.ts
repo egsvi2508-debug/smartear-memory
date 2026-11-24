@@ -19,7 +19,7 @@ import "./lib/keys-dialog";
 import { openKeySettings } from "./lib/keys";
 import { getStats } from "./lib/stats";
 import { DOCS, renderDoc, type Doc } from "./legal";
-import { showBeach } from "./lib/beach";
+import { SCENES, sceneId, setScene, onSceneChange, showScene } from "./lib/scenes";
 import { unlockMusic, musicOn, musicStyle, setMusicStyle, setMusicOn, onMusicChange, musicVolume, setMusicVolume, skipTrack, nowPlaying } from "./lib/music";
 
 type Handle = { destroy?: () => void } | void;
@@ -108,7 +108,7 @@ async function showGame(game: Game) {
   const host = el("div", "legacy-root mk-root play");
   host.style.setProperty("--tint", game.tint);
   app.append(host);
-  showBeach(app);
+  showScene(app);
   window.scrollTo(0, 0);
   document.title = `${game.name} · Human Ears`;
   const [, mod] = await Promise.all([loadVexFlow().catch(() => null), game.load()]);
@@ -173,12 +173,28 @@ function musicButton() {
   const musicName = el("span", "snd-title", "Music");
   musicName.addEventListener("click", () => toggle.click()); // the name works as a switch too
   top.append(musicName, toggle);
-  // Background: beach waves, a basic rhythm, or both. Picking one also turns it on.
+  // Scene: the picture behind the games, with its own sounds and beat.
+  const sceneTitle = el("span", "snd-name", "Scene");
+  const sceneGrid = el("div", "snd-scenes");
+  sceneGrid.setAttribute("role", "radiogroup");
+  sceneGrid.setAttribute("aria-label", "Scene");
+  const sceneBtns = SCENES.map((sc) => {
+    const sb = el("button", "snd-scene");
+    sb.type = "button";
+    sb.setAttribute("role", "radio");
+    const sw = el("i");
+    sw.style.background = sc.swatch;
+    sb.append(sw, document.createTextNode(sc.name));
+    sb.addEventListener("click", () => setScene(sc.id));
+    sceneGrid.append(sb);
+    return [sc.id, sb] as const;
+  });
+  // Background sound: the scene's sounds, a basic beat, or both. Picking one also turns it on.
   const styleRow = el("div", "snd-style");
   styleRow.setAttribute("role", "radiogroup");
   styleRow.setAttribute("aria-label", "Music style");
-  const styleBtns = (["beach", "rhythm", "both"] as const).map((id) => {
-    const sb = el("button", "snd-style-btn", id === "beach" ? "Beach" : id === "rhythm" ? "Rhythm" : "Both");
+  const styleBtns = (["ambience", "rhythm", "both"] as const).map((id) => {
+    const sb = el("button", "snd-style-btn", id === "ambience" ? "Sounds" : id === "rhythm" ? "Beat" : "Both");
     sb.type = "button";
     sb.setAttribute("role", "radio");
     sb.addEventListener("click", () => {
@@ -226,6 +242,8 @@ function musicButton() {
   });
   drawClean();
   pop.append(
+    sceneTitle,
+    sceneGrid,
     top,
     styleRow,
     slider("Music volume", musicVolume(), setMusicVolume),
@@ -252,6 +270,10 @@ function musicButton() {
     toggle.classList.toggle("on", on);
     toggle.setAttribute("aria-pressed", String(on));
     now.textContent = on ? `♪ ${nowPlaying()}` : "";
+    for (const [id, sb] of sceneBtns) {
+      sb.classList.toggle("on", id === sceneId());
+      sb.setAttribute("aria-checked", String(id === sceneId()));
+    }
     for (const [id, sb] of styleBtns) {
       sb.classList.toggle("on", id === musicStyle());
       sb.setAttribute("aria-checked", String(id === musicStyle()));
@@ -259,6 +281,7 @@ function musicButton() {
   };
   draw();
   onMusicChange(draw);
+  onSceneChange(draw);
   toggle.addEventListener("click", () => setMusicOn(!musicOn()));
   skip.addEventListener("click", () => skipTrack());
 

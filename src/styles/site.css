@@ -541,16 +541,24 @@ body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
 .snd-clean .snd-name { font-size: 14px; color: var(--a-dim); font-weight: 600; }
 /* settings: a switch's name can be tapped too */
 .snd-top > .snd-title, .snd-clean > .snd-name { cursor: pointer; user-select: none; }
-/* settings: music style (Beats / Ambient) */
+/* settings: background sound (Sounds / Beat / Both) */
 .snd-style { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--a-panel-2); }
 .snd-style-btn { height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--a-dim); font: inherit; font-weight: 800; cursor: pointer; }
 .snd-style-btn:hover { color: var(--a-ink); }
 .snd-style-btn.on { background: var(--a-yellow); color: var(--a-dark); }
-/* ---- the beach behind the exercises ---- */
-.beach-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.beach-bg svg { width: 100%; height: 100%; display: block; }
-.beach-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 16, 38, 0.35), rgba(11, 16, 38, 0.15) 50%, rgba(11, 16, 38, 0.3)); }
+/* settings: the scene picker */
+.snd-scenes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.snd-scene { display: flex; flex-direction: column; gap: 4px; padding: 4px 4px 6px; border-radius: 12px; border: 2px solid var(--a-line); background: var(--a-panel-2); color: var(--a-dim); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.snd-scene i { display: block; height: 34px; border-radius: 8px; }
+.snd-scene:hover { color: var(--a-ink); border-color: var(--a-cyan); }
+.snd-scene.on { border-color: var(--a-yellow); color: var(--a-ink); box-shadow: 0 0 0 2px rgba(255, 212, 0, 0.3); }
+/* ---- the scene behind the exercises ---- */
+.scene-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.scene-bg svg { width: 100%; height: 100%; display: block; }
+.scene-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 16, 38, 0.35), rgba(11, 16, 38, 0.15) 50%, rgba(11, 16, 38, 0.3)); }
+.scene-bg svg * { transform-box: view-box; }
 .mk-root.play { position: relative; z-index: 1; background: transparent !important; }
+/* beach */
 .bh-swell { animation: bh-drift 14s linear infinite; }
 .bh-s2 { animation-duration: 9s; animation-direction: reverse; }
 .bh-wash { animation: bh-wash 7s ease-in-out infinite; transform-origin: 50% 100%; }
@@ -559,7 +567,50 @@ body.clean .hx-strip, body.clean .mk-rules { display: none !important; }
 @keyframes bh-drift { to { transform: translateX(240px); } }
 @keyframes bh-wash { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(26px); } }
 @keyframes bh-glint { 50% { opacity: 0.6; } }
-@media (prefers-reduced-motion: reduce) { .beach-bg * { animation: none !important; } }
+/* forest */
+.fo-rays { animation: bh-glint 7s ease-in-out infinite; }
+.fo-mist { animation: sc-sway 26s ease-in-out infinite; }
+.fo-birds { animation: fo-fly 28s linear infinite; }
+.fo-sway { animation: fo-sway 9s ease-in-out infinite; transform-origin: 50% 100%; }
+.fo-motes circle { animation: sc-twinkle 6s ease-in-out infinite; }
+@keyframes fo-fly { from { transform: translate(-200px, 260px); } to { transform: translate(1640px, 140px); } }
+@keyframes fo-sway { 50% { transform: skewX(0.8deg); } }
+@keyframes sc-sway { 50% { transform: translateX(260px); } }
+@keyframes sc-twinkle { 50% { opacity: 0.15; } }
+/* rainy city */
+.ct-rain { stroke: #a8c4ff; stroke-width: 1.6; stroke-linecap: round; opacity: 0.45; animation: ct-rain 0.9s linear infinite; }
+.ct-neon { animation: ct-flicker 7s steps(1) infinite; }
+.ct-blink { animation: sc-twinkle 5s ease-in-out infinite; }
+.ct-reflect { animation: bh-glint 3s ease-in-out infinite; }
+@keyframes ct-rain { from { transform: translate(0, 0); } to { transform: translate(-240px, 900px); } }
+@keyframes ct-flicker { 0%, 100% { opacity: 1; } 41% { opacity: 0.55; } 42% { opacity: 1; } 44% { opacity: 0.6; } 45% { opacity: 1; } }
+/* snowy peaks */
+.sn-aurora { animation: sn-aurora 16s ease-in-out infinite; }
+.sn-tw { animation: sc-twinkle 5s ease-in-out infinite; }
+.sn-fall { fill: #fff; }
+.sn-f1 { animation: sn-fall 18s linear infinite; }
+.sn-f2 { animation: sn-fall 11s linear infinite; }
+.sn-sway { animation: sc-sway-s 9s ease-in-out infinite; }
+@keyframes sn-aurora { 0%, 100% { transform: translateX(0); opacity: 0.9; } 50% { transform: translateX(-120px); opacity: 0.55; } }
+@keyframes sn-fall { to { transform: translateY(900px); } }
+@keyframes sc-sway-s { 50% { transform: translateX(60px); } }
+/* desert */
+.de-tw { animation: sc-twinkle 6s ease-in-out infinite; }
+.de-sun { animation: bh-glint 8s ease-in-out infinite; }
+.de-dust { animation: de-dust 6s linear infinite; }
+.de-shoot { opacity: 0; animation: de-shoot 11s ease-in infinite; }
+@keyframes de-dust { from { transform: translateX(-120px); opacity: 0; } 30%, 70% { opacity: 0.35; } to { transform: translateX(220px); opacity: 0; } }
+@keyframes de-shoot { 0% { transform: translate(1300px, 60px) rotate(160deg); opacity: 0; } 2% { opacity: 1; } 9% { transform: translate(900px, 220px) rotate(160deg); opacity: 0; } 100% { opacity: 0; } }
+/* deep space */
+.sp-neb { animation: sp-neb 30s ease-in-out infinite; transform-origin: 50% 40%; }
+.sp-tw1 { animation: sc-twinkle 4s ease-in-out infinite; }
+.sp-tw2 { animation: sc-twinkle 7s ease-in-out infinite reverse; }
+.sp-orbit { animation: sp-orbit 40s linear infinite; transform-origin: 1060px 330px; }
+.sp-comet { opacity: 0; animation: sp-comet 14s ease-in infinite; }
+@keyframes sp-neb { 50% { transform: scale(1.08) rotate(3deg); opacity: 0.8; } }
+@keyframes sp-orbit { to { transform: rotate(360deg); } }
+@keyframes sp-comet { 0% { transform: translate(-260px, 120px) rotate(12deg); opacity: 0; } 3% { opacity: 1; } 16% { transform: translate(900px, 380px) rotate(12deg); opacity: 0; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .scene-bg * { animation: none !important; } }
 /* text that sits straight on the scene stays readable */
 .mk-root.play .mk-rules { background: rgba(11, 16, 38, 0.78); }
 .mk-root.play .mk-status, .mk-root.play .nr-hint { color: #e9ecff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9); }

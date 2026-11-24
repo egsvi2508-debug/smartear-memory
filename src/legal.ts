@@ -110,7 +110,7 @@ function terms(body: HTMLElement) {
     ]),
     p("By joining the board you allow your chosen name and best scores to be shown publicly. You can leave at any time on the [Privacy page](#/privacy)."),
     h("h2", "The background sound"),
-    p("The background sound (rhythms and beach waves) is free to use in your own videos and reels, no credit needed. Other parts of the site have their own licences, listed on the [Credits page](#/credits)."),
+    p("The background sound (the beats and every scene's sounds) is free to use in your own videos and reels, no credit needed. Other parts of the site have their own licences, listed on the [Credits page](#/credits)."),
     h("h2", "Liability"),
     p("To the extent the law allows, the publisher is not liable for any loss arising from use of the site. Nothing here limits liability that cannot be limited by law, such as for intent or gross negligence."),
     h("h2", "Contact"),
@@ -122,7 +122,7 @@ function credits(body: HTMLElement) {
   const oga = "https://opengameart.org/content/";
   body.append(
     h("h2", "Background sound"),
-    p("The rhythms are made live by this site's own code. The beach waves are public domain (CC0) recordings: [Beach Ocean Waves](https://opengameart.org/content/beach-ocean-waves) (Alki Beach, recorded by jasinski) and [Water Waves](https://opengameart.org/content/water-waves) (recorded by transitking), both cut by qubodup. The sea wash under them is made live too."),
+    p("The beats and the sounds of the forest, rainy city, snowy peaks, desert and deep space scenes are made live by this site's own code, as are the scenes' pictures. The beach waves are public domain (CC0) recordings: [Beach Ocean Waves](https://opengameart.org/content/beach-ocean-waves) (Alki Beach, recorded by jasinski) and [Water Waves](https://opengameart.org/content/water-waves) (recorded by transitking), both cut by qubodup. The sea wash under them is made live too."),
     h("h2", "Piano"),
     p("[Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm, licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Samples as prepared by the Tone.js project, unchanged."),
     h("h2", "Fonts"),
