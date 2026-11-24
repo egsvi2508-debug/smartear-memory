@@ -233,6 +233,19 @@ body { min-height: 100dvh; }
   .ir-btn { min-height: 62px; }
   .ir-btn span { font-size: 11px; }
 }
+/* with the intervals bigger than an octave: up to 24 buttons, 6 across */
+.ir-grid.dense { gap: 6px; }
+.ir-grid.dense .ir-btn { min-height: 56px; padding: 6px 2px; border-radius: 13px; }
+.ir-grid.dense .ir-btn b { font-size: 19px; }
+.ir-grid.dense .ir-btn span { font-size: 10.5px; text-align: center; line-height: 1.1; }
+.ir-grid.dense .ir-btn kbd { top: 3px; right: 3px; font-size: 9px !important; padding: 0 3px !important; }
+@media (max-width: 520px) {
+  .ir-grid.dense { gap: 5px; }
+  .ir-grid.dense .ir-btn { min-height: 46px; }
+  .ir-grid.dense .ir-btn b { font-size: 17px; }
+  .ir-grid.dense .ir-btn span { display: none; }
+  .ir-grid.dense .ir-btn kbd { display: none; }
+}
 
 /* ================= leftovers from the old palette ================= */
 .mk-root.play .mk-key.white { background: linear-gradient(180deg, #ffffff, #e9eefc); border-color: var(--a-dark); }

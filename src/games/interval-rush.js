@@ -3,7 +3,10 @@
 // notes start going down, then sound together, and the answer time
 // shrinks. After every answer the two notes show on a staff, so the
 // clip teaches as it goes. Answer with the big buttons or the number
-// keys (the number of semitones: 1 = minor 2nd ... = = octave).
+// keys (the number of semitones: 1 = minor 2nd ... = = octave). From level
+// 10 the intervals bigger than an octave come in (minor 9th up to two
+// octaves), two per level, on the letter row under the numbers: Q = m9 sits
+// under 1 = m2, ] = two octaves under = = octave.
 //
 // Built on memory-kit.
 
@@ -30,10 +33,25 @@ const IV = {
   10: { short: "m7", long: "Minor 7th", steps: 6 },
   11: { short: "M7", long: "Major 7th", steps: 6 },
   12: { short: "P8", long: "Octave", steps: 7 },
+  // bigger than an octave
+  13: { short: "m9", long: "Minor 9th", steps: 8 },
+  14: { short: "M9", long: "Major 9th", steps: 8 },
+  15: { short: "m10", long: "Minor 10th", steps: 9 },
+  16: { short: "M10", long: "Major 10th", steps: 9 },
+  17: { short: "P11", long: "Perfect 11th", steps: 10 },
+  18: { short: "A11", long: "Augmented 11th", steps: 10 },
+  19: { short: "P12", long: "Perfect 12th", steps: 11 },
+  20: { short: "m13", long: "Minor 13th", steps: 12 },
+  21: { short: "M13", long: "Major 13th", steps: 12 },
+  22: { short: "m14", long: "Minor 14th", steps: 13 },
+  23: { short: "M14", long: "Major 14th", steps: 13 },
+  24: { short: "P15", long: "Two octaves", steps: 14 },
 };
-const KEY_OF = { 1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8", 9: "9", 10: "0", 11: "-", 12: "=" };
+const KEY_OF = { 1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8", 9: "9", 10: "0", 11: "-", 12: "=", 13: "q", 14: "w", 15: "e", 16: "r", 17: "t", 18: "y", 19: "u", 20: "i", 21: "o", 22: "p", 23: "[", 24: "]" };
 const SEMIS_OF_KEY = Object.fromEntries(Object.entries(KEY_OF).map(([s, k]) => [k, Number(s)]));
-const ADD_ORDER = [[4, 7, 12], [5], [3], [2], [9, 1], [8, 10], [11, 6]];
+// One entry per level. Levels 8-9 add no intervals (notes go down and sound
+// together instead); from level 10 the compound intervals come in.
+const ADD_ORDER = [[4, 7, 12], [5], [3], [2], [9, 1], [8, 10], [11, 6], [], [], [16, 19], [15, 14], [17, 24], [21, 13], [20, 22], [23, 18]];
 
 /** Level → which intervals, which directions, how fast. */
 export function spec(level) {
@@ -45,7 +63,8 @@ export function spec(level) {
     down: L >= 8 ? 0.5 : L >= 4 ? 0.3 : 0,
     together: L >= 8 ? 0.35 : L >= 6 ? 0.25 : 0,
     gap: Math.max(0.26, 0.55 - 0.025 * (L - 1)), // seconds between the two notes
-    ms: Math.max(1300, Math.round(4200 - 260 * (L - 1))), // answer time after the sound
+    // answer time after the sound, plus a little for every button past 12
+    ms: Math.max(1300, Math.round(4200 - 260 * (L - 1))) + 80 * Math.max(0, pool.length - 12),
   };
 }
 
@@ -62,11 +81,16 @@ function makeCard(rng, sp, prevSemis) {
   if (semis === prevSemis && sp.pool.length > 1) semis = pick(rng, sp.pool.filter((x) => x !== semis));
   const down = rng() < sp.down;
   const together = rng() < sp.together;
-  const rootStep = randInt(rng, down ? 29 : 25, down ? 36 : 32); // D4–C5 going down, G3–G4 going up
+  const iv = IV[semis];
+  let rootStep = randInt(rng, down ? 29 : 25, down ? 36 : 32); // D4–C5 going down, G3–G4 going up
+  if (semis > 12) {
+    // Wide: centre the pair around B4 so both notes fit one treble staff.
+    const low = Math.round(34 - iv.steps / 2) + randInt(rng, -1, 1);
+    rootStep = down ? low + iv.steps : low;
+  }
   const rootLetter = mod(rootStep, 7);
   const rootMidi = (Math.floor(rootStep / 7) + 1) * 12 + LETTER_PC[rootLetter];
   const root = note(rootStep, rootMidi);
-  const iv = IV[semis];
   const other = down ? note(rootStep - iv.steps, rootMidi - semis) : note(rootStep + iv.steps, rootMidi + semis);
   const notes = down ? [root, other] : [root, other]; // in the order they play
   return { semis, down: down && !together, together, notes };
@@ -164,7 +188,8 @@ function createRunner(ctx) {
     buttons.clear();
     const cols = sp.pool.length <= 4 ? sp.pool.length : sp.pool.length <= 8 ? 4 : 6;
     grid.style.setProperty("--cols", cols);
-    grid.classList.toggle("wide", cols > 4);
+    grid.classList.toggle("wide", cols > 4 && sp.pool.length <= 12);
+    grid.classList.toggle("dense", sp.pool.length > 12); // with the wide intervals: 6 across, smaller
     sp.pool.forEach((s) => {
       const b = el("button", "ir-btn");
       b.append(el("b", "", IV[s].short), el("span", "", IV[s].long), el("kbd", "", KEY_OF[s]));
@@ -308,7 +333,7 @@ function createRunner(ctx) {
         if (live && ctx.phase === "play") play(false);
         return true;
       }
-      const s = SEMIS_OF_KEY[e.key];
+      const s = SEMIS_OF_KEY[e.key.toLowerCase()];
       if (s === undefined || !sp.pool.includes(s)) return false;
       return answer(s);
     },
