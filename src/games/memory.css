@@ -330,6 +330,7 @@
 .mk-root .pm-card.matched .pm-label, .mk-root .pm-card.shown .pm-label { display: block; }
 .mk-root .pm-card.unfound .pm-front { background: #f3ede1; border-style: dashed; }
 .mk-root .pm-card.miss .pm-front { border-color: var(--mk-bad); background: #fff2f3; }
+.mk-root .pm-card.nomatch .pm-front { border-color: #9aa3c7; background: #f1f3fb; }
 .mk-root .pm-card.ping .pm-inner { animation: pm-ping 0.3s ease; }
 @keyframes pm-ping { 50% { transform: rotateY(180deg) scale(0.95); } }
 .mk-root .pm-card.focus { box-shadow: 0 0 0 3px var(--brass); }

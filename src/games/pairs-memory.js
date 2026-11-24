@@ -7,6 +7,13 @@
 // memory for sound, remembering WHERE you heard WHAT, which none of the
 // other memory games touch, and it's calm: nothing is timed.
 //
+// Only misses you could have avoided count. Turning over two cards you have
+// never heard is luck, not memory: on a big board an unlucky deal can cost
+// many of those even with a perfect memory. So a miss is free when the second
+// card is new AND the first card's partner has not been heard yet. Every
+// other miss (you had heard the right card, or picked a known wrong one)
+// counts against the limit.
+//
 // The sounds get harder to tell apart as the levels climb (and the board
 // grows): far-apart notes → intervals → close notes (a semitone apart) →
 // chord colours on one root → three-note melodies → (levels 11-13) random
@@ -49,7 +56,8 @@ function boardSpec(level) {
   const b = BOARDS[idx];
   const beyond = Math.max(0, level - BOARDS.length); // past the table: same boards, fewer misses allowed
   const kind = beyond ? pickKind(level) : b.kind;
-  const budget = Math.max(3, Math.round(b.pairs * 1.2) + (level <= 3 ? 2 : 1) - beyond);
+  // Counts only avoidable misses (see the top), so luck never decides a board.
+  const budget = Math.max(2, Math.round(b.pairs * 0.6) + (level <= 3 ? 2 : 1) - beyond);
   return { pairs: b.pairs, kind, budget, cols: COLS[b.pairs], len: beyond ? 5 : b.len || 4 };
 }
 function pickKind(level) {
@@ -195,7 +203,10 @@ function createRunner(ctx) {
   let first = null; // index of the open, unmatched card
   let pending = null; // [a, b], a mismatch still showing
   let pendingTimer = null;
-  let mistakes = 0;
+  let mistakes = 0; // misses that count (avoidable)
+  let freeMisses = 0; // misses on cards never heard before: luck, not counted
+  let heard = new Set(); // card indexes turned over at least once
+  let note = ""; // a short word after the last flip
   let found = 0;
   let focus = 0;
   let roundIndex = 0;
@@ -215,7 +226,7 @@ function createRunner(ctx) {
 
   function status() {
     const left = Math.max(0, spec.budget - mistakes); // the last miss over the limit shows 0, not -1
-    ctx.status(`${found} of ${spec.pairs} pairs · ${left} miss${left === 1 ? "" : "es"} left`);
+    ctx.status(`${found} of ${spec.pairs} pairs · ${left} miss${left === 1 ? "" : "es"} left${note ? ` · ${note}` : ""}`);
     ctx.pips(cards.filter((c, i) => cards.findIndex((d) => d.item.key === c.item.key) === i).map((c) => (c.matched ? "good" : "")));
   }
 
@@ -248,7 +259,7 @@ function createRunner(ctx) {
   function settlePending() {
     if (!pending) return;
     clearTimeout(pendingTimer);
-    pending.forEach((k) => cards[k].el.classList.remove("open", "miss"));
+    pending.forEach((k) => cards[k].el.classList.remove("open", "miss", "nomatch"));
     pending = null;
   }
 
@@ -269,6 +280,11 @@ function createRunner(ctx) {
     sound(c.item);
     if (first === null) {
       first = i;
+      heard.add(i);
+      if (note) {
+        note = "";
+        status();
+      }
       return;
     }
     const a = cards[first];
@@ -287,10 +303,16 @@ function createRunner(ctx) {
         ctx.later(() => finish(true), 450);
       }
     } else {
-      mistakes++;
+      // Free when the second card is new and the first card's partner was never heard.
+      const partner = cards.findIndex((d, k) => k !== first && d.item.key === a.item.key);
+      const lucky = !heard.has(i) && !heard.has(partner);
+      heard.add(i);
+      if (lucky) freeMisses++;
+      else mistakes++;
+      note = lucky ? "new cards, no miss" : "";
       const pair = [first, i];
       first = null;
-      pair.forEach((k) => cards[k].el.classList.add("miss"));
+      pair.forEach((k) => cards[k].el.classList.add(lucky ? "nomatch" : "miss"));
       pending = pair;
       pendingTimer = setTimeout(settlePending, 1100);
       status();
@@ -318,7 +340,7 @@ function createRunner(ctx) {
       base: n * 12 + Math.max(0, spare) * 6,
       partial: found * 4,
       units: [found, n],
-      title: success ? (mistakes === 0 ? "Flawless board" : undefined) : `${found} of ${n} pairs`,
+      title: success ? (mistakes === 0 ? (freeMisses === 0 ? "Flawless board" : "Perfect memory") : undefined) : `${found} of ${n} pairs`,
       tip,
       legend: null,
       actions: [],
@@ -334,6 +356,9 @@ function createRunner(ctx) {
     first = null;
     pending = null;
     mistakes = 0;
+    freeMisses = 0;
+    heard = new Set();
+    note = "";
     found = 0;
     focus = 0;
     ending = false;
@@ -389,7 +414,7 @@ const GAME = {
   howTo: [
     ["Flip", "Tap a card to hear its sound. Nothing is timed."],
     ["Match", "Find the card with the same sound. A match stays open and shows its name."],
-    ["Clear", "Find every pair within the miss limit to move up."],
+    ["Clear", "Find every pair within the miss limit to move up. Missing on two cards you've never heard is free: only misses you could have avoided count."],
   ],
   keysHint: "<kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Space</kbd> flip",
   createRunner,
